@@ -19,7 +19,7 @@ UrnaVirtuale::~UrnaVirtuale() {
 uint UrnaVirtuale::getIdProceduraCorrente(){
 	//contattare il db e ottenere l'id della procedura corrente
 
-	uint idProcedura = 11111;
+
 	return idProcedura;
 }
 

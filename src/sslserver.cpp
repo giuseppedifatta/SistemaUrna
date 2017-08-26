@@ -260,6 +260,7 @@ void SSLServer::serviceAttivazionePV(SSL * ssl) {
        cerr << "ServizioUrnaThread: lunghezza MAC errata" << endl;
     }
 
+    //chiave di sessione condivisa tra la postazione da attivare e l'urna
 	string encodedSessionKey = "11A47EC4465DD95FCD393075E7D3C4EB";
 	cout << "Session key: " << encodedSessionKey << endl;
 	string plain;
