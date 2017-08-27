@@ -6,6 +6,12 @@ ProceduraVoto::ProceduraVoto()
 {
     this->data_ora_inizio = "";
     this->data_ora_termine = "";
+    this->idRP = 0;
+    this->idProceduraVoto = 0;
+    this->descrizione = "";
+    this->numSchedeVoto = 0;
+    this->schedeInserite = 0;
+    this->stato = 0;
 }
 
 string ProceduraVoto::getDescrizione() const
@@ -78,36 +84,37 @@ void ProceduraVoto::removeSessioneByIndex(int index)
     this->sessioni.erase(sessioni.begin()+index);
 }
 
-string ProceduraVoto::getInfoRP(uint idRP)
-{   string infoRP;
-    if(rps.empty()){
-        return "";
-    }
-    else{
-        for(unsigned int i = 0; i< rps.size(); i++){
-            string nome,cognome,data,luogo;
-            if(rps.at(i).getIdRP() == idRP){
-                nome = rps.at(i).getNome();
-                cognome = rps.at(i).getCognome();
-                data = rps.at(i).getDataNascita();
-                luogo = rps.at(i).getLuogoNascita();
-                infoRP =  nome + " " + cognome + ", " + luogo + ", " + data;
-                break;
-            }
-        }
-    }
-    return infoRP;
-}
+//string ProceduraVoto::getInfoRP(uint idRP)
+//{   string infoRP;
+//    if(rps.empty()){
+//        return "";
+//    }
+//    else{
+//        for(unsigned int i = 0; i< rps.size(); i++){
+//            string nome,cognome,data,luogo;
+//            if(rps.at(i).getIdRP() == idRP){
+//                nome = rps.at(i).getNome();
+//                cognome = rps.at(i).getCognome();
+//                data = rps.at(i).getDataNascita();
+//                luogo = rps.at(i).getLuogoNascita();
+//                infoRP =  nome + " " + cognome + ", " + luogo + ", " + data;
+//                break;
+//            }
+//        }
+//    }
 
-vector<ResponsabileProcedimento> ProceduraVoto::getRps() const
-{
-    return rps;
-}
-
-void ProceduraVoto::setRps(const vector<ResponsabileProcedimento> &value)
-{
-    rps = value;
-}
+//    return infoRP;
+//}
+//
+//vector<ResponsabileProcedimento> ProceduraVoto::getRps() const
+//{
+//    return rps;
+//}
+//
+//void ProceduraVoto::setRps(const vector<ResponsabileProcedimento> &value)
+//{
+//    rps = value;
+//}
 
 uint ProceduraVoto::getIdProceduraVoto() const
 {

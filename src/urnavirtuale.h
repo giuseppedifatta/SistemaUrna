@@ -10,7 +10,7 @@
 #include <string>
 #include <cstdlib>
 #include "tinyxml2.h"
-#include
+#include "proceduravoto.h"
 
 class UrnaVirtuale {
 public:
@@ -18,7 +18,15 @@ public:
 	virtual ~UrnaVirtuale();
 	uint getIdProceduraCorrente();
 	uint getNumeroSchede(uint idProcedura);
+	bool getScrutinioEseguito();
+	bool decifravoti_RP();
+	bool checkFirmaPV_U();
+	void firmaVC_U();
+	vector <string> getSchede();
 
+private:
+	ProceduraVoto proceduraCorrente;
+	DataManager *model;
 
 };
 

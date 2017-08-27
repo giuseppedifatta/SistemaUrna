@@ -55,7 +55,7 @@ public:
     //funzione che mette il server in ascolto delle richieste
     void startListen();
 private:
-    UrnaVirtuale *uvChiamante;
+    UrnaVirtuale *uv;
     //std::thread test_thread;
     BIO* outbio;
     SSL_CTX * ctx;

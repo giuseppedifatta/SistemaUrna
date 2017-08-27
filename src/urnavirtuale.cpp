@@ -9,7 +9,7 @@
 
 UrnaVirtuale::UrnaVirtuale() {
 	// TODO Auto-generated constructor stub
-
+	model = new DataManager();
 }
 
 UrnaVirtuale::~UrnaVirtuale() {
@@ -18,14 +18,18 @@ UrnaVirtuale::~UrnaVirtuale() {
 
 uint UrnaVirtuale::getIdProceduraCorrente(){
 	//contattare il db e ottenere l'id della procedura corrente
+	proceduraCorrente = model->getProceduraCorrente();
 
-
-	return idProcedura;
+	return proceduraCorrente.getIdProceduraVoto();
 }
 
-uint UrnaVirtuale::getNumeroSchede(uint idProcedura){
+uint UrnaVirtuale::getNumeroSchede(uint idProceduraCorrente){
 	//contattare il db per ottenere il numero di schede abbinate alla procedura
 
-	uint numSchede = 2;
+	uint numSchede = proceduraCorrente.getNumSchedeVoto();
 	return numSchede;
+}
+
+vector<string> UrnaVirtuale::getSchede() {
+	return model->getSchedeVoto(proceduraCorrente.getIdProceduraVoto());
 }

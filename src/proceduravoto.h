@@ -31,9 +31,9 @@ public:
     vector<SessioneVoto> getSessioni() const;
     void resetSessioni();
     void removeSessioneByIndex(int index);
-    string getInfoRP(uint idRP);
-    vector<ResponsabileProcedimento> getRps() const;
-    void setRps(const vector<ResponsabileProcedimento> &value);
+//    string getInfoRP(uint idRP);
+//    vector<ResponsabileProcedimento> getRps() const;
+//    void setRps(const vector<ResponsabileProcedimento> &value);
 
     uint getIdProceduraVoto() const;
     void setIdProceduraVoto(const uint &value);
@@ -64,10 +64,10 @@ private:
     string data_ora_inizio;
     string data_ora_termine;
     vector <SessioneVoto> sessioni;
-    vector <ResponsabileProcedimento> rps;
+    //vector <ResponsabileProcedimento> rps;
     uint idProceduraVoto;
 
 
 };
-Q_DECLARE_METATYPE(ProceduraVoto)
+//Q_DECLARE_METATYPE(ProceduraVoto)
 #endif // PROCEDURAVOTO_H

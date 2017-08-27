@@ -39,7 +39,7 @@ using namespace CryptoPP;
 using namespace std;
 
 SSLServer::SSLServer(UrnaVirtuale * uv) {
-	uvChiamante = uv;
+	this->uv = uv;
 	this->stopServer = false;
 	//seggioChiamante->mutex_stdout.lock();
 	cout << "ServerUrna: Costruttore!" << endl;
@@ -234,7 +234,7 @@ void SSLServer::serviceAttivazionePV(SSL * ssl) {
 
 	//invio idProcedura alla Postazione di voto
 	//contattare il DB e ricavare l'id della Procedura di voto in corso
-	uint idProceduraCorrente = uvChiamante->getIdProceduraCorrente();
+	uint idProceduraCorrente = uv->getIdProceduraCorrente();
 	stringstream ssIdProcedura;
 	ssIdProcedura << idProceduraCorrente;
 	string strIdProcedura = ssIdProcedura.str();
@@ -244,87 +244,105 @@ void SSLServer::serviceAttivazionePV(SSL * ssl) {
 	//uvChiamante->mutex_stdout.unlock();
 	SSL_write(ssl,charIdProcedura,strlen(charIdProcedura));
 
-
+	if(idProceduraCorrente == 0){
+		cout << "nessuna procedura in corso!" << endl;
+		return;
+	}
 	//ricezione hmac dell'idProcedura generato con la chiave di sessione relativo alla postazione che ha richiesto attivazione
 	//1. recupero dal db della chiave di sessione relativa alla postazione richiedente
 	string macReceived;
-    char mac_buffer[512];
-    memset(mac_buffer, '\0', sizeof(mac_buffer));
-    int bytes = SSL_read(ssl, mac_buffer, sizeof(mac_buffer));
-    if (bytes > 0) {
-    	mac_buffer[bytes] = 0;
-    	macReceived = string(mac_buffer);
-    	cout << "HMAC ricevuto: " << macReceived << endl;
-    }
-    else{
-       cerr << "ServizioUrnaThread: lunghezza MAC errata" << endl;
-    }
+	char mac_buffer[512];
+	memset(mac_buffer, '\0', sizeof(mac_buffer));
+	int bytes = SSL_read(ssl, mac_buffer, sizeof(mac_buffer));
+	if (bytes > 0) {
+		mac_buffer[bytes] = 0;
+		macReceived = string(mac_buffer);
+		cout << "HMAC ricevuto: " << macReceived << endl;
+	}
+	else{
+		cerr << "ServizioUrnaThread: lunghezza MAC errata" << endl;
+	}
 
-    //chiave di sessione condivisa tra la postazione da attivare e l'urna
+	//chiave di sessione condivisa tra la postazione da attivare e l'urna
 	string encodedSessionKey = "11A47EC4465DD95FCD393075E7D3C4EB";
 	cout << "Session key: " << encodedSessionKey << endl;
 	string plain;
 	plain = strIdProcedura;
 	//2. verifica dell'hmac
+	const char * successValue;
 	try
 	{
-	    string decodedKey;
+		string decodedKey;
 
-	    StringSource ss(encodedSessionKey,
-	        new HexDecoder(
-	            new StringSink(decodedKey)
-	        ) // HexDecoder
-	    ); // StringSource
+		StringSource ss(encodedSessionKey,
+				new HexDecoder(
+						new StringSink(decodedKey)
+				) // HexDecoder
+		); // StringSource
 
-	    cout << "Verified message" << endl;
-	    //3. comunico alla postazione l'esito positivo della verifica
-        stringstream ss1;
-        ss1 << 0;
-        string str1 = ss1.str();
+		cout << "Verified message" << endl;
+		//3. comunico alla postazione l'esito positivo della verifica
+		stringstream ss1;
+		ss1 << 0;
+		string str1 = ss1.str();
 
-        cout << "ServizioUrnaThread: attivazionePV-return value: " << 0 << endl;
-        //inviamo al seggio un codice relativo all'esito dell'operazione
-        const char * successValue = str1.c_str();
-        SSL_write(ssl,successValue,strlen(successValue));
+		cout << "ServizioUrnaThread: attivazionePV-return value: " << 0 << endl;
+		//inviamo al seggio un codice relativo all'esito dell'operazione
+		successValue = str1.c_str();
+		SSL_write(ssl,successValue,strlen(successValue));
 	}
 	catch(const Exception& e)
 	{
-	    cerr << e.what() << endl;
-	    //3. comunico l'esito negativo della verifica
-        stringstream ss2;
-        ss2 << 1;
-        string str2 = ss2.str();
+		cerr << e.what() << endl;
+		//3. comunico l'esito negativo della verifica
+		stringstream ss2;
+		ss2 << 1;
+		string str2 = ss2.str();
 
-        cout << "ServizioUrnaThread: attivazionePV-return value: " << 1 << endl;
-        //inviamo al seggio un codice relativo all'esito dell'operazione
-        const char * successValue = str2.c_str();
-        SSL_write(ssl,successValue,strlen(successValue));
+		cout << "ServizioUrnaThread: attivazionePV-return value: " << 1 << endl;
+		//inviamo al seggio un codice relativo all'esito dell'operazione
+		successValue = str2.c_str();
+		SSL_write(ssl,successValue,strlen(successValue));
 
 	}
 
-	//inviare schede di voto per la procedura corrente
-	//1.comunicare il numero di schede da inviare
-	uint numSchede = 1;
-	numSchede = uvChiamante->getNumeroSchede(idProceduraCorrente);
+	if(successValue == "0"){
+		//inviare schede di voto per la procedura corrente
+		//1.comunicare il numero di schede da inviare
+		uint numSchede = uv->getNumeroSchede(idProceduraCorrente);
 
-	stringstream ssNumSchede;
-	ssNumSchede << numSchede;
-	string strNumSchede = ssNumSchede.str();
-	const char * charNumSchede = strNumSchede.c_str();
-	//uvChiamante->mutex_stdout.lock();
-	cout << "ServizioUrnaThread: invio numSchede: " << charNumSchede << endl;
-	//uvChiamante->mutex_stdout.unlock();
-	SSL_write(ssl,charNumSchede,strlen(charNumSchede));
+		stringstream ssNumSchede;
+		ssNumSchede << numSchede;
+		string strNumSchede = ssNumSchede.str();
+		const char * charNumSchede = strNumSchede.c_str();
+		//uvChiamante->mutex_stdout.lock();
+		cout << "ServizioUrnaThread: invio numSchede: " << charNumSchede << endl;
+		//uvChiamante->mutex_stdout.unlock();
+		SSL_write(ssl,charNumSchede,strlen(charNumSchede));
 
-	//ottenere dal db le schede di voto per la procedura in corso
+		//ottenere dal db le schede di voto per la procedura in corso
+		vector <string> schede = uv->getSchede();
+		//2.invio del numero di schede precedentemente comunicato
 
-	//2.invio del numero di schede precedentemente comunicato
+		for(unsigned int i = 0; i< numSchede; i++){
+			//myssl_fwrite(ssl,"scheda_voto_1.xml");
 
-	for(unsigned int i = 0; i< numSchede; i++){
-		myssl_fwrite(ssl,"scheda_voto_1.xml");
+
+			const char *file_xml = schede.at(i).c_str();
+			int length = strlen(file_xml);
+			stringstream strs;
+			strs << length;
+			string temp_str = strs.str();
+			const char *num_bytes = temp_str.c_str();
+
+			cout << "ServizioUrnaThread: bytes to send:" << num_bytes << endl;
+			SSL_write(ssl, num_bytes, strlen(num_bytes));
+			SSL_write(ssl, file_xml, length);
+
+
+		}
+
 	}
-
-
 
 	return;
 
@@ -873,9 +891,9 @@ int SSLServer::myssl_fwrite(SSL *ssl, const char * infile) {
 		stringstream strs;
 		strs << length;
 		string temp_str = strs.str();
-		const char *info = temp_str.c_str();
-		cout << "ServizioUrnaThread: bytes to send:" << info << endl;
-		SSL_write(ssl, info, strlen(info));
+		const char *num_bytes = temp_str.c_str();
+		cout << "ServizioUrnaThread: bytes to send:" << num_bytes << endl;
+		SSL_write(ssl, num_bytes, strlen(num_bytes));
 		SSL_write(ssl, buffer, length);
 
 		delete[] buffer;

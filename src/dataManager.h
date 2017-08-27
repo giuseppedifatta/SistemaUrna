@@ -29,7 +29,7 @@ public:
 	virtual ~DataManager();
 	ProceduraVoto getProceduraCorrente();
 	bool isScrutinioEseguito();
-	vector <XMLDocument> getSchedeVoto(uint idProceduraCorrente);
+	vector <string> getSchedeVoto(uint idProceduraCorrente);
 	uint getIdSessioneCorrente(uint idProceduraCorrente);
 	string getSessionKey_Postazione_Urna(string IP_Postazione, uint idSessioneCorrente);
 	bool storeVotoFirmato_U(string uniqueMAC,string encryptedSchedaCompilata, string encryptedKey, string encryptedIV, int nonce, string digest);
