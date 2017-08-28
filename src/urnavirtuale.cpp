@@ -31,5 +31,7 @@ uint UrnaVirtuale::getNumeroSchede(uint idProceduraCorrente){
 }
 
 vector<string> UrnaVirtuale::getSchede() {
-	return model->getSchedeVoto(proceduraCorrente.getIdProceduraVoto());
+	uint idProcedura = proceduraCorrente.getIdProceduraVoto();
+	cout << "richiedo al model le schede per la procedura: " << idProcedura << endl;
+	return model->getSchedeVoto(idProcedura);
 }

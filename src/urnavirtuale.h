@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include "tinyxml2.h"
 #include "proceduravoto.h"
+#include "dataManager.h"
 
 class UrnaVirtuale {
 public:

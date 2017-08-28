@@ -3,8 +3,7 @@
 #include <string>
 #include <vector>
 #include "sessionevoto.h"
-#include "responsabileprocedimento.h"
-#include <QtCore>
+//#include "responsabileprocedimento.h"
 
 using namespace std;
 class ProceduraVoto

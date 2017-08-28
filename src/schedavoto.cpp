@@ -3,10 +3,13 @@
 using namespace std;
 SchedaVoto::SchedaVoto()
 {
-    modalitaAdd=SchedaVoto::modoAdd::candidato;
+    this->modalitaAdd=SchedaVoto::modoAdd::candidato;
 
     //id della procedura a cui la scheda di voto è associata
-
+    this->id = 0;
+    this->numPreferenze = 0;
+    this->tipoElezione = tipologieElezioni::undefined;
+    this->idProceduraVoto = 0;
 }
 
 unsigned int SchedaVoto::getId() const

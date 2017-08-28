@@ -4,7 +4,7 @@
 #include <string>
 #include "candidato.h"
 #include "listaelettorale.h"
-#include <QtCore>
+//#include <QtCore>
 
 class SchedaVoto{
     //la scheda di voto viene costruita e riempita tramite l'interfaccia grafica,
@@ -48,7 +48,7 @@ public:
         CCDS, //Consiglio di Corso di Studio
         CI, //Consiglio di Interclasse
         CD, //Consiglio di Dipartimento
-
+        undefined
     };
 
 
@@ -84,5 +84,5 @@ private:
 
 };
 
-Q_DECLARE_METATYPE(SchedaVoto)
+//Q_DECLARE_METATYPE(SchedaVoto)
 #endif // SCHEDAVOTO_H

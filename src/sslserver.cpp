@@ -285,10 +285,10 @@ void SSLServer::serviceAttivazionePV(SSL * ssl) {
 		stringstream ss1;
 		ss1 << 0;
 		string str1 = ss1.str();
-
-		cout << "ServizioUrnaThread: attivazionePV-return value: " << 0 << endl;
-		//inviamo al seggio un codice relativo all'esito dell'operazione
 		successValue = str1.c_str();
+		cout << "ServizioUrnaThread: attivazionePV-return value: " << successValue << endl;
+		//inviamo al seggio un codice relativo all'esito dell'operazione
+
 		SSL_write(ssl,successValue,strlen(successValue));
 	}
 	catch(const Exception& e)
@@ -305,8 +305,9 @@ void SSLServer::serviceAttivazionePV(SSL * ssl) {
 		SSL_write(ssl,successValue,strlen(successValue));
 
 	}
-
-	if(successValue == "0"){
+	int success = atoi(successValue);
+	//cout << success << endl;
+	if(success == 0){
 		//inviare schede di voto per la procedura corrente
 		//1.comunicare il numero di schede da inviare
 		uint numSchede = uv->getNumeroSchede(idProceduraCorrente);
@@ -324,7 +325,7 @@ void SSLServer::serviceAttivazionePV(SSL * ssl) {
 		vector <string> schede = uv->getSchede();
 		//2.invio del numero di schede precedentemente comunicato
 
-		for(unsigned int i = 0; i< numSchede; i++){
+		for(unsigned int i = 0; i< schede.size(); i++){
 			//myssl_fwrite(ssl,"scheda_voto_1.xml");
 
 

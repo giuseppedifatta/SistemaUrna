@@ -11,7 +11,7 @@ ProceduraVoto::ProceduraVoto()
     this->descrizione = "";
     this->numSchedeVoto = 0;
     this->schedeInserite = 0;
-    this->stato = 0;
+    this->stato = ProceduraVoto::statiProcedura::undefined;
 }
 
 string ProceduraVoto::getDescrizione() const

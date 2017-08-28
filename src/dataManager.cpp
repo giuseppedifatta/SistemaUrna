@@ -39,6 +39,7 @@ ProceduraVoto DataManager::getProceduraCorrente() {
 	//date formatted for sql db comparing
 	strftime(buffer,20,"%Y-%m-%d %X",ltm); //%F equivalent to %Y-%m-%d 2001-08-23 , %X equivalent to %T 14:55:02
 	string currentTime = buffer;
+	cout << "current time: " << currentTime << endl;
 	PreparedStatement *pstmt;
 	ResultSet * resultSet;
 	pstmt = connection->prepareStatement("SELECT * FROM ProcedureVoto WHERE inizio <= ? AND fine >= ?");
@@ -49,6 +50,7 @@ ProceduraVoto DataManager::getProceduraCorrente() {
 
 		//si suppone che per una certa data, la procedura corrente sia unica
 		if(resultSet->next()){
+			cout << "Procedura in corso trovata!" << endl;
 			//estrazione dati procedura dalla tupla ottenuta
 			pv.setIdProceduraVoto(resultSet->getUInt("idProceduraVoto"));
 			pv.setDescrizione(resultSet->getString("descrizione"));
@@ -89,6 +91,7 @@ ProceduraVoto DataManager::getProceduraCorrente() {
 }
 
 bool DataManager::isScrutinioEseguito() {
+	return false;
 }
 
 vector <string> DataManager::getSchedeVoto(uint idProceduraCorrente) {
@@ -105,7 +108,7 @@ vector <string> DataManager::getSchedeVoto(uint idProceduraCorrente) {
 			std::istream *blobData = resultSet->getBlob("fileScheda");
 			std::istreambuf_iterator<char> isb = std::istreambuf_iterator<char>(*blobData);
 			std::string blobString = std::string(isb, std::istreambuf_iterator<char>());
-			cout << "La scheda ottenuta ha id: " << resultSet->getUInt("codScheda") << endl;
+			cout << "La scheda ottenuta ha id: " << resultSet->getUInt("codSchedaVoto") << endl;
 			cout << blobString << endl;
 			schedeVoto.push_back(blobString);
 		}
