@@ -35,3 +35,7 @@ vector<string> UrnaVirtuale::getSchede() {
 	cout << "richiedo al model le schede per la procedura: " << idProcedura << endl;
 	return model->getSchedeVoto(idProcedura);
 }
+
+string UrnaVirtuale::getPublicKeyRP(uint idProceduraCorrente){
+	return model->getPublicKeyRP(idProceduraCorrente);
+}

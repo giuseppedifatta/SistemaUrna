@@ -24,6 +24,7 @@ public:
 	bool checkFirmaPV_U();
 	void firmaVC_U();
 	vector <string> getSchede();
+	string getPublicKeyRP(uint idProceduraCorrente);
 
 private:
 	ProceduraVoto proceduraCorrente;

@@ -135,3 +135,48 @@ bool DataManager::storeVotoFirmato_U(string uniqueMAC,
 		string encryptedSchedaCompilata, string encryptedKey,
 		string encryptedIV, int nonce, string digest) {
 }
+string DataManager::getPublicKeyRP(uint idProcedura){
+	PreparedStatement *pstmt;
+	ResultSet * resultSet;
+	uint idRP;
+	pstmt = connection->prepareStatement("SELECT idResponsabileProcedimento AS idRP FROM ProcedureVoto WHERE idProceduraVoto = ?");
+	try{
+		pstmt->setUInt(1,idProcedura);
+		resultSet = pstmt->executeQuery();
+
+
+		if(resultSet->next()){
+			idRP = resultSet->getUInt("idRP");
+			cout << "L'RP della procedura " << idProcedura << " ha id: " << idRP << endl;
+		}
+		else{
+			cerr << "La procedura " << idProcedura << " non è presente" << endl;
+		}
+	}catch(SQLException &ex){
+		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
+	}
+
+	//otteniamo la chiave pubblica per l'RP
+
+	pstmt = connection->prepareStatement("SELECT publicKey FROM ResponsabiliProcedimento WHERE idResponsabileProcedimento = ?");
+	string publicKey;
+	try{
+		pstmt->setUInt(1,idRP);
+		resultSet = pstmt->executeQuery();
+
+
+		if(resultSet->next()){
+			std::istream *blobData = resultSet->getBlob("publicKey");
+			std::istreambuf_iterator<char> isb = std::istreambuf_iterator<char>(*blobData);
+			publicKey = std::string(isb, std::istreambuf_iterator<char>());
+		}
+		else{
+			cerr << "L'RP con id " << idRP << " non è presente" << endl;
+		}
+	}catch(SQLException &ex){
+		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
+	}
+
+	//restiruisce la chiave publica encoded esadecimale
+	return publicKey;
+}

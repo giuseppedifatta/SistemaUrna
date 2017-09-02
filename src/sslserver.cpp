@@ -307,6 +307,9 @@ void SSLServer::serviceAttivazionePV(SSL * ssl) {
 	}
 	int success = atoi(successValue);
 	//cout << success << endl;
+
+
+	//invio delle schede alla postazione di voto
 	if(success == 0){
 		//inviare schede di voto per la procedura corrente
 		//1.comunicare il numero di schede da inviare
@@ -342,6 +345,20 @@ void SSLServer::serviceAttivazionePV(SSL * ssl) {
 
 
 		}
+
+
+		//ottengo chiave pubblica di RP per la procedura corrente
+		string publicKeyRP;
+		publicKeyRP = uv->getPublicKeyRP(idProceduraCorrente);
+
+		//invio chiave pubblica di RP alla postazione voto
+		int length = strlen(publicKeyRP.c_str());
+		stringstream strs;
+		strs << length;
+		string temp_str = strs.str();
+		const char *num_bytes = temp_str.c_str();
+		SSL_write(ssl, num_bytes, strlen(num_bytes));
+		SSL_write(ssl, publicKeyRP.c_str(), length);
 
 	}
 

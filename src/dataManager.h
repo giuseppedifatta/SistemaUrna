@@ -33,6 +33,7 @@ public:
 	uint getIdSessioneCorrente(uint idProceduraCorrente);
 	string getSessionKey_Postazione_Urna(string IP_Postazione, uint idSessioneCorrente);
 	bool storeVotoFirmato_U(string uniqueMAC,string encryptedSchedaCompilata, string encryptedKey, string encryptedIV, int nonce, string digest);
+	string getPublicKeyRP(uint idProcedura);
 };
 
 #endif /* DATAMANAGER_H_ */
