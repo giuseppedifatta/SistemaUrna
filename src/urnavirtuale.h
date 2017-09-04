@@ -13,6 +13,16 @@
 #include "proceduravoto.h"
 #include "dataManager.h"
 
+#include "cryptopp/osrng.h"
+#include "cryptopp/cryptlib.h"
+#include "cryptopp/hmac.h"
+#include "cryptopp/sha.h"
+#include "cryptopp/hex.h"
+#include "cryptopp/filters.h"
+#include "cryptopp/secblock.h"
+
+using namespace CryptoPP;
+
 class UrnaVirtuale {
 public:
 	UrnaVirtuale();
@@ -25,7 +35,7 @@ public:
 	void firmaVC_U();
 	vector <string> getSchede();
 	string getPublicKeyRP(uint idProceduraCorrente);
-
+	int verifyMAC(string encodedSessionKey,string plain, string macEncoded);
 private:
 	ProceduraVoto proceduraCorrente;
 	DataManager *model;

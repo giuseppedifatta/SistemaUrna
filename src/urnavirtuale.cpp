@@ -39,3 +39,51 @@ vector<string> UrnaVirtuale::getSchede() {
 string UrnaVirtuale::getPublicKeyRP(uint idProceduraCorrente){
 	return model->getPublicKeyRP(idProceduraCorrente);
 }
+
+
+int UrnaVirtuale::verifyMAC(string encodedSessionKey,string data, string macEncoded){
+	int success = 0;
+	cout << "Dati da verificare: " << data << endl;
+	cout << "mac da verificare: " << macEncoded << endl;
+
+	string decodedKey;
+	cout << "Session key: " << encodedSessionKey << endl;
+
+	StringSource (encodedSessionKey,true,
+			new HexDecoder(
+					new StringSink(decodedKey)
+			) // HexDecoder
+	); // StringSource
+
+	SecByteBlock key2(reinterpret_cast<const byte*>(decodedKey.data()), decodedKey.size());
+
+	string macDecoded;
+	StringSource(macEncoded, true,
+			new HexDecoder(
+					new StringSink(macDecoded)
+			) // HexEncoder
+	); // StringSource
+	cout << "hmac encoded: " << macDecoded << endl;
+
+	try
+	{
+		HMAC< SHA256 > hmac(key2, key2.size());
+		const int flags = HashVerificationFilter::THROW_EXCEPTION | HashVerificationFilter::HASH_AT_END;
+
+
+
+		StringSource(data + macDecoded, true,
+				new HashVerificationFilter(hmac, NULL, flags)
+		); // StringSource
+
+		cout << "Verified message" << endl;
+		success = 0;
+	}
+	catch(const CryptoPP::Exception& e)
+	{
+		success = 1;
+		cerr << e.what() << endl;
+		exit(1);
+	}
+	return success;
+}
