@@ -16,9 +16,14 @@
 #include <cppconn/driver.h>
 #include <cppconn/exception.h>
 #include <cppconn/resultset.h>
+#include <sstream>
+#include <string>
+#include <iostream>
+
 
 using namespace tinyxml2;
 using namespace sql;
+using namespace std;
 class DataManager {
 private:
 
@@ -32,8 +37,9 @@ public:
 	vector <string> getSchedeVoto(uint idProceduraCorrente);
 	uint getIdSessioneCorrente(uint idProceduraCorrente);
 	string getSessionKey_Postazione_Urna(string IP_Postazione, uint idSessioneCorrente);
-	bool storeVotoFirmato_U(string uniqueMAC,string encryptedSchedaCompilata, string encryptedKey, string encryptedIV, int nonce, string digest);
+	bool storeVotoFirmato_U(string uniqueMAC, string encryptedSchedaCompilata, string encryptedKey,	string encryptedIV, uint nonce, string digestFirmato, uint idProceduraCorrente);
 	string getPublicKeyRP(uint idProcedura);
+	bool uniqueIDSchedaCompilata(string id);
 };
 
 #endif /* DATAMANAGER_H_ */

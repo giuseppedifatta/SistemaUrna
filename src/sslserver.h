@@ -39,7 +39,7 @@ public:
         infoProcedura, //seggio
         infoSessione, //seggio
         risultatiVoto, //seggio
-        invioSchedeCompilate, //postazionevoto
+        invioSchedaCompilata, //postazionevoto
         scrutinio, //responsabile procedimento
         autenticazioneTecnico, //sistema tecnico
         autenticazioneRP, //responsabile procedimento
@@ -90,7 +90,8 @@ private:
 	void serviceInfoProcedura(SSL * ssl);
 	void serviceInfoSessione(SSL *ssl);
 	void serviceRisultatiVoto(SSL *ssl);
-	void serviceInvioSchedeCompilate(SSL *ssl);
+	void serviceInvioSchedaCompilata(SSL* ssl);
+
 	void serviceScrutinio(SSL *ssl);
 	void serviceAutenticazioneTecnico(SSL *ssl);
 	void serviceAutenticazioneRP(SSL *ssl);

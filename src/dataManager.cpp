@@ -131,10 +131,7 @@ string DataManager::getSessionKey_Postazione_Urna(string IP_Postazione,
 		uint idSessioneCorrente) {
 }
 
-bool DataManager::storeVotoFirmato_U(string uniqueMAC,
-		string encryptedSchedaCompilata, string encryptedKey,
-		string encryptedIV, int nonce, string digest) {
-}
+
 string DataManager::getPublicKeyRP(uint idProcedura){
 	PreparedStatement *pstmt;
 	ResultSet * resultSet;
@@ -177,6 +174,75 @@ string DataManager::getPublicKeyRP(uint idProcedura){
 		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
 	}
 
+	pstmt->close();
+	delete pstmt;
+	delete resultSet;
 	//restiruisce la chiave publica encoded esadecimale
 	return publicKey;
+}
+
+bool DataManager::storeVotoFirmato_U(string uniqueMAC,
+		string encryptedSchedaCompilata, string encryptedKey,
+		string encryptedIV, uint nonce, string digestFirmato,
+		uint idProceduraCorrente) {
+	bool stored = true;
+	PreparedStatement *pstmt;
+
+	pstmt = connection->prepareStatement("INSERT INTO SchedeCompilate (`idSchedaCompilata`, `idProcedura`,"
+			" `fileVotoCifrato`, `chiavecifrata`, `ivcifrato`, `digestUrna`, `nonce`) VALUES(?,?,?,?,?,?,?)");
+	try{
+		pstmt->setString(1,uniqueMAC);
+		pstmt->setUInt(2,idProceduraCorrente);
+
+		std::stringstream ss(encryptedSchedaCompilata);
+		pstmt->setBlob(3,&ss);
+
+		ss = std::stringstream(encryptedKey);
+		pstmt->setBlob(4,&ss);
+
+		ss = std::stringstream(encryptedIV);
+		pstmt->setBlob(5,&ss);
+
+		ss = std::stringstream(digestFirmato);
+		pstmt->setBlob(6,&ss);
+
+		pstmt->setUInt(7,nonce);
+
+		pstmt->executeUpdate();
+		connection->commit();
+	}catch(SQLException &ex){
+		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
+		stored = false;
+	}
+
+	pstmt->close();
+	delete pstmt;
+
+	return stored;
+}
+
+bool DataManager::uniqueIDSchedaCompilata(string idSchedaCompilata) {
+	bool isUnique = true;
+	PreparedStatement *pstmt;
+	ResultSet * resultSet;
+	pstmt = connection->prepareStatement("SELECT `idSchedaCompilata` FROM `SchedeCompilate` WHERE idSchedaCompilata =?");
+	try{
+		pstmt->setString(1,idSchedaCompilata);
+		resultSet = pstmt->executeQuery();
+		resultSet = pstmt->executeQuery();
+		if(resultSet->next()){
+			isUnique = false;
+			cout << "idSchedaCompilata " << idSchedaCompilata << " già presente, rifiutare la memorizzazione del pacchetto di voto" << endl;
+		}
+		else{
+			cout << "idSchedaCompilata: "<<  idSchedaCompilata<< " non è ancora presente, si può procedere alla memorizzazione del pacchetto di voto" << endl;
+		}
+	}catch(SQLException &ex){
+		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
+	}
+
+	pstmt->close();
+	delete pstmt;
+	delete resultSet;
+	return isUnique;
 }

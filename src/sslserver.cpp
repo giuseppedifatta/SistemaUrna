@@ -192,8 +192,8 @@ void SSLServer::Servlet(int client_sock_fd) {/* threadable */
 			case servizi::risultatiVoto:
 				this->serviceRisultatiVoto(ssl);
 				break;
-			case servizi::invioSchedeCompilate:
-				this->serviceInvioSchedeCompilate(ssl);
+			case servizi::invioSchedaCompilata:
+				this->serviceInvioSchedaCompilata(ssl);
 				break;
 			case servizi::scrutinio:
 				this->serviceScrutinio(ssl);
@@ -226,7 +226,133 @@ void SSLServer::Servlet(int client_sock_fd) {/* threadable */
 	cout << "ServizioUrnaThread: fine servlet" << endl;
 	//seggioChiamante->mutex_stdout.unlock();
 }
+void SSLServer::serviceInvioSchedaCompilata(SSL * ssl){
+	//seggioChiamante->mutex_stdout.lock();
+	cout << "ServizioUrnaThread: service started: "
+			<< servizi::invioSchedaCompilata << endl;
+	//seggioChiamante->mutex_stdout.unlock();
+	//ricevo scheda cifrata
+	string schedaCifrata;
+	char buffer[16];
+	memset(buffer, '\0', sizeof(buffer));
+	int bytes = SSL_read(ssl, buffer, sizeof(buffer));
+	if (bytes > 0) {
+		buffer[bytes] = 0;
+		//lunghezza fileScheda da ricevere
+		uint length = atoi(buffer);
+		char fileScheda[length + 1];
+		memset(fileScheda, '\0', sizeof(fileScheda));
+		bytes = SSL_read(ssl, fileScheda, sizeof(fileScheda));
+		if (bytes > 0) {
+			fileScheda[bytes] = 0;
+			schedaCifrata = fileScheda;
+			cout << "scheda cifrata " << schedaCifrata << endl;
+		}
+	}
+	//ricevo kc
+	string kc;
+	memset(buffer, '\0', sizeof(buffer));
+	bytes = SSL_read(ssl, buffer, sizeof(buffer));
+	if (bytes > 0) {
+		buffer[bytes] = 0;
+		//lunghezza kc da ricevere
+		uint length = atoi(buffer);
+		char buffer1[length + 1];
+		memset(buffer1, '\0', sizeof(buffer1));
+		bytes = SSL_read(ssl, buffer1, sizeof(buffer1));
+		if (bytes > 0) {
+			buffer1[bytes] = 0;
+			kc = buffer1;
+			cout << "chiave cifrata: " << kc << endl;
+		}
+	}
+	//ricevo ivc
+	string ivc;
+	memset(buffer, '\0', sizeof(buffer));
+	bytes = SSL_read(ssl, buffer, sizeof(buffer));
+	if (bytes > 0) {
+		buffer[bytes] = 0;
+		//lunghezza ivc da ricevere
+		uint length = atoi(buffer);
+		char buffer1[length + 1];
+		memset(buffer1, '\0', sizeof(buffer1));
+		bytes = SSL_read(ssl, buffer1, sizeof(buffer1));
+		if (bytes > 0) {
+			buffer1[bytes] = 0;
+			ivc = buffer1;
+			cout << "initial value cifrato: " << ivc << endl;
+		}
+	}
+	//ricevo nonce
+	uint nonce;
+	memset(buffer, '\0', sizeof(buffer));
+	bytes = SSL_read(ssl, buffer, sizeof(buffer));
+	if (bytes > 0) {
+		buffer[bytes] = 0;
+		//lunghezza nonce da ricevere
+		uint length = atoi(buffer);
+		char buffer1[length + 1];
+		memset(buffer1, '\0', sizeof(buffer1));
+		bytes = SSL_read(ssl, buffer1, sizeof(buffer1));
+		if (bytes > 0) {
+			buffer1[bytes] = 0;
+			nonce = atoi(buffer1);
+			cout << "Nonce:  " << nonce << endl;
+		}
+	}
+	//ricevo mac
+	string macPacchettoVoto;
+	memset(buffer, '\0', sizeof(buffer));
+	bytes = SSL_read(ssl, buffer, sizeof(buffer));
+	if (bytes > 0) {
+		buffer[bytes] = 0;
+		//lunghezza mac da ricevere
+		uint length = atoi(buffer);
+		char buffer1[length + 1];
+		memset(buffer1, '\0', sizeof(buffer1));
+		bytes = SSL_read(ssl, buffer1, sizeof(buffer1));
+		if (bytes > 0) {
+			buffer1[bytes] = 0;
+			macPacchettoVoto = buffer1;
+			cout << "Mac del pacchetto di voto ricevuto: "
+					<< macPacchettoVoto << endl;
+		}
+	}
+	//verifica del MAC
+	//TODO 1. ricavare sessionKey per la postazione con cui si sta comunicando
+	string encodedSessionKey = "11A47EC4465DD95FCD393075E7D3C4EB";
+	cout << "Session key: " << encodedSessionKey << endl;
+	string plain = schedaCifrata + kc + ivc + std::to_string(nonce);
+	//2. verifica dell'hmac
+	int success = uv->verifyMAC(encodedSessionKey, plain, macPacchettoVoto);
+	cout << "ServizioUrnaThread: esito verifica del MAC: " << success
+			<< endl;
+	//3. tentativo di memorizzazione del voto sul database
+	if (success == 0) {
+		const char* storedVoto;
+		int stored = 1; //non memorizzato
+		//controllo che il mac sia adeguato come identificativo del pacchetto di voto sul database
+		if (uv->checkMACasUniqueID(macPacchettoVoto)) {
+			string idSchedaCompilata = macPacchettoVoto;
+			if(uv->storePacchettoVoto(idSchedaCompilata, schedaCifrata, kc, ivc, nonce)){
+				stored = 0;
+			}
+		} else {
+			//mac non univoco per il DB, voto non memorizzato
+			stored = 1;
+		}
+		storedVoto = std::to_string(stored).c_str();
+		//storedVoto = 0 -> stored
+		//storedVoto = 1 -> unable to store
+		cout << "Esito operazione di storing del pacchetto di voto: " << storedVoto << endl;
+		//invio valore di successo o insuccesso della memorizzazione del voto
+		SSL_write(ssl, storedVoto, strlen(storedVoto));
+	} else {
+		cerr << "pacchetto di voto rifiutato, perchè corrotto" << endl;
+	}
+	return;
 
+}
 void SSLServer::serviceAttivazionePV(SSL * ssl) {
 	//seggioChiamante->mutex_stdout.lock();
 	cout << "ServizioUrnaThread: service started: " << servizi::attivazionePV << endl;
@@ -382,121 +508,6 @@ void SSLServer::serviceRisultatiVoto(SSL *ssl) {
 	//seggioChiamante->mutex_stdout.lock();
 	cout << "ServizioUrnaThread: service started: " << servizi::risultatiVoto << endl;
 	//seggioChiamante->mutex_stdout.unlock();
-
-
-	return;
-
-}
-
-void SSLServer::serviceInvioSchedeCompilate(SSL * ssl) {
-	//seggioChiamante->mutex_stdout.lock();
-	cout << "ServizioUrnaThread: service started: " << servizi::invioSchedeCompilate << endl;
-	//seggioChiamante->mutex_stdout.unlock();
-
-	//ricevo scheda cifrata
-	string schedaCifrata;
-	char buffer[16];
-	memset(buffer, '\0', sizeof(buffer));
-	int bytes = SSL_read(ssl,buffer,sizeof(buffer));
-	if(bytes > 0){
-		buffer[bytes] = 0;
-
-		//lunghezza fileScheda da ricevere
-		uint length = atoi(buffer);
-		char fileScheda[length+1];
-		memset(fileScheda, '\0', sizeof(fileScheda));
-		bytes = SSL_read(ssl,fileScheda,sizeof(fileScheda));
-		if(bytes > 0){
-			fileScheda[bytes] = 0;
-			schedaCifrata = fileScheda;
-			cout << "scheda cifrata " << schedaCifrata << endl;
-		}
-	}
-
-	//ricevo kc
-	string kc;
-	memset(buffer, '\0', sizeof(buffer));
-	bytes = SSL_read(ssl,buffer,sizeof(buffer));
-	if(bytes > 0){
-		buffer[bytes] = 0;
-
-		//lunghezza kc da ricevere
-		uint length = atoi(buffer);
-		char buffer1[length+1];
-		memset(buffer1, '\0', sizeof(buffer1));
-		bytes = SSL_read(ssl,buffer1,sizeof(buffer1));
-		if(bytes > 0){
-			buffer1[bytes] = 0;
-			kc = buffer1;
-			cout << "chiave cifrata: " << kc << endl;
-		}
-	}
-
-	//ricevo ivc
-	string ivc;
-	memset(buffer, '\0', sizeof(buffer));
-	bytes = SSL_read(ssl,buffer,sizeof(buffer));
-	if(bytes > 0){
-		buffer[bytes] = 0;
-
-		//lunghezza ivc da ricevere
-		uint length = atoi(buffer);
-		char buffer1[length+1];
-		memset(buffer1, '\0', sizeof(buffer1));
-		bytes = SSL_read(ssl,buffer1,sizeof(buffer1));
-		if(bytes > 0){
-			buffer1[bytes] = 0;
-			ivc = buffer1;
-			cout << "initial value cifrato: " << ivc << endl;
-		}
-	}
-
-	//ricevo nonce
-	int nonce;
-	memset(buffer, '\0', sizeof(buffer));
-	bytes = SSL_read(ssl,buffer,sizeof(buffer));
-	if(bytes > 0){
-		buffer[bytes] = 0;
-
-		//lunghezza nonce da ricevere
-		uint length = atoi(buffer);
-		char buffer1[length+1];
-		memset(buffer1, '\0', sizeof(buffer1));
-		bytes = SSL_read(ssl,buffer1,sizeof(buffer1));
-		if(bytes > 0){
-			buffer1[bytes] = 0;
-			nonce = atoi(buffer1);
-			cout << "Nonce:  "<<  nonce << endl;
-		}
-	}
-
-
-	//ricevo mac
-	string macPacchettoVoto;
-	memset(buffer, '\0', sizeof(buffer));
-	bytes = SSL_read(ssl,buffer,sizeof(buffer));
-	if(bytes > 0){
-		buffer[bytes] = 0;
-
-		//lunghezza mac da ricevere
-		uint length = atoi(buffer);
-		char buffer1[length+1];
-		memset(buffer1, '\0', sizeof(buffer1));
-		bytes = SSL_read(ssl,buffer1,sizeof(buffer1));
-		if(bytes > 0){
-			buffer1[bytes] = 0;
-			macPacchettoVoto = buffer1;
-			cout << "Mac del pacchetto di voto ricevuto: " << macPacchettoVoto << endl;
-		}
-	}
-
-	//verifica del MAC
-
-	//tentativo di memorizzazione del voto sul database
-	int successValue;
-
-	//invio valore di successo o insuccesso della memorizzazione del voto
-
 
 
 	return;
