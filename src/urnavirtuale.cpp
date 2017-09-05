@@ -6,7 +6,7 @@
  */
 
 #include "urnavirtuale.h"
-#include "RSA-PSS_utils.hd"
+#include "RSA-PSS_utils.h"
 
 UrnaVirtuale::UrnaVirtuale() {
 	// TODO Auto-generated constructor stub
@@ -64,7 +64,7 @@ int UrnaVirtuale::verifyMAC(string encodedSessionKey,string data, string macEnco
 					new StringSink(macDecoded)
 			) // HexDecoder
 	); // StringSource
-	cout << "hmac encoded: " << macDecoded << endl;
+	cout << "hmac decoded: " << macDecoded << endl;
 
 	try
 	{
@@ -84,7 +84,6 @@ int UrnaVirtuale::verifyMAC(string encodedSessionKey,string data, string macEnco
 	{
 		success = 1;
 		cerr << e.what() << endl;
-		exit(1);
 	}
 	return success;
 }
@@ -121,17 +120,18 @@ string UrnaVirtuale::firmaPacchettoVoto_U(string data) {
 	ss.MessageEnd();
 	cout << "PrivateKey:" << s << endl;
 
+	string signature;
 	////////////////////////////////////////////////
 	try{
 		// Sign and Encode
 		RSASS<PSS, SHA256>::Signer signer(privateKey);
 
 		AutoSeededRandomPool rng;
-		string signature;
+
 		StringSource(data, true,
 				new SignerFilter(rng, signer, new StringSink(signature)) // SignerFilter
 		);// StringSource
-
+		cout << " Signature: " << signature << endl;
 
 
 ////------ verifica signature
@@ -176,6 +176,8 @@ string UrnaVirtuale::firmaPacchettoVoto_U(string data) {
 	catch (CryptoPP::Exception& e) {
 		cerr << "Error: " << e.what() << endl;
 	}
+
+	return signature;
 }
 
 string UrnaVirtuale::generaDigestSHA256(string data) {

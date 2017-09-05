@@ -51,9 +51,9 @@ private:
 	string firmaPacchettoVoto_U(string data);
 	string generaDigestSHA256(string data);
 	bool checkDigestSHA256(string digest, string dataToCheck);
-	RSA::PrivateKey extractPrivatePemKey(const char * client_key_pem);
+	CryptoPP::RSA::PrivateKey extractPrivatePemKey(const char * client_key_pem);
 	void getPublicKeyFromCert(CryptoPP::BufferedTransformation & certin,
-			CryptoPP::BufferedTransformation & keyout)
+			CryptoPP::BufferedTransformation & keyout);
 };
 
 #endif /* URNAVIRTUALE_H_ */

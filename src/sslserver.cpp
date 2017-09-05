@@ -246,7 +246,7 @@ void SSLServer::serviceInvioSchedaCompilata(SSL * ssl){
 		if (bytes > 0) {
 			fileScheda[bytes] = 0;
 			schedaCifrata = fileScheda;
-			cout << "scheda cifrata " << schedaCifrata << endl;
+			cout << "scheda cifrata: " << schedaCifrata << endl;
 		}
 	}
 	//ricevo kc
