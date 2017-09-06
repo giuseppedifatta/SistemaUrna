@@ -450,7 +450,7 @@ void SSLServer::serviceAttivazionePV(SSL * ssl) {
 			cout << "ServizioUrnaThread: bytes to send:" << num_bytes << endl;
 			SSL_write(ssl, num_bytes, strlen(num_bytes));
 			SSL_write(ssl, file_xml, length);
-
+			//manca calcolo e invio del mac delle schede di voto
 
 		}
 
@@ -478,6 +478,72 @@ void SSLServer::serviceAttivazioneSeggio(SSL * ssl) {
 	//seggioChiamante->mutex_stdout.lock();
 	cout << "ServizioUrnaThread: service started: " << servizi::attivazioneSeggio << endl;
 	//seggioChiamante->mutex_stdout.unlock();
+
+
+
+	//invio idProcedura alla Postazione Seggio
+	//contattare il DB e ricavare l'id della Procedura di voto in corso
+	uint idProceduraCorrente = uv->getIdProceduraCorrente();
+	stringstream ssIdProcedura;
+	ssIdProcedura << idProceduraCorrente;
+	string strIdProcedura = ssIdProcedura.str();
+	const char * charIdProcedura = strIdProcedura.c_str();
+	//uvChiamante->mutex_stdout.lock();
+	cout << "ServizioUrnaThread: invio idProcedura: " << charIdProcedura << endl;
+	//uvChiamante->mutex_stdout.unlock();
+	SSL_write(ssl,charIdProcedura,strlen(charIdProcedura));
+
+	if(idProceduraCorrente == 0){
+		cout << "nessuna procedura in corso!" << endl;
+		return;
+	}
+
+
+	//1. ricezione hmac dell'idProcedura generato con la chiave di sessione relativo alla postazione che ha richiesto attivazione
+
+	string macReceived;
+	char mac_buffer[512];
+	memset(mac_buffer, '\0', sizeof(mac_buffer));
+	int bytes = SSL_read(ssl, mac_buffer, sizeof(mac_buffer));
+	if (bytes > 0) {
+		mac_buffer[bytes] = 0;
+		macReceived = string(mac_buffer);
+		cout << "HMAC ricevuto: " << macReceived << endl;
+	}
+	else{
+		cerr << "ServizioUrnaThread: lunghezza MAC errata" << endl;
+	}
+
+	//chiave di sessione condivisa tra la postazione seggio da attivare e l'urna
+
+	//TODO 2. ricavare sessionKey per la postazione seggio con cui si sta comunicando
+
+	string encodedSessionKey = "11A47EC4465DD95FCD393075E7D3C4EB";
+	cout << "Session key: " << encodedSessionKey << endl;
+
+	string plain;
+	plain = strIdProcedura;
+
+
+	//3. verifica dell'hmac
+	const char * successValue;
+
+	int success = uv->verifyMAC(encodedSessionKey,plain,macReceived);
+
+	string str1 = std::to_string(success);
+	successValue = str1.c_str();
+	cout << "ServizioUrnaThread: esito verifica del MAC: " << successValue << endl;
+
+	//4. comunica esito della verifica del mac
+	SSL_write(ssl,successValue,strlen(successValue));
+
+	//se la postazione seggio è stata attivata con successo inviamo i dati:
+	// - info procedura(descrizione, dataInizio, dataTermine),
+	// - infoSessione(oraapertura, oraChiusura),
+	// - info token associati al seggio (id HT, username per l'autenticazione relativi agli HT)
+	if(success == 0){
+
+	}
 
 
 	return;

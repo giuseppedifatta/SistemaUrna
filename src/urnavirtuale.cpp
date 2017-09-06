@@ -71,8 +71,6 @@ int UrnaVirtuale::verifyMAC(string encodedSessionKey,string data, string macEnco
 		HMAC< SHA256 > hmac(key2, key2.size());
 		const int flags = HashVerificationFilter::THROW_EXCEPTION | HashVerificationFilter::HASH_AT_END;
 
-
-
 		StringSource(data + macDecoded, true,
 				new HashVerificationFilter(hmac, NULL, flags)
 		); // StringSource
