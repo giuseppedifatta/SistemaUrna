@@ -2,7 +2,10 @@
 
 SessioneVoto::SessioneVoto()
 {
-
+	idSessione = 0;
+	oraApertura = "";
+	oraChiusura = "";
+	data = "";
 }
 
 string SessioneVoto::getOraApertura() const

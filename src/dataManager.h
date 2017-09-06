@@ -35,7 +35,7 @@ public:
 	ProceduraVoto getProceduraCorrente();
 	bool isScrutinioEseguito();
 	vector <string> getSchedeVoto(uint idProceduraCorrente);
-	uint getIdSessioneCorrente(uint idProceduraCorrente);
+	SessioneVoto getSessioneCorrenteSuccessiva(uint idProceduraCorrente);
 	string getSessionKey_Postazione_Urna(string IP_Postazione, uint idSessioneCorrente);
 	bool storeVotoFirmato_U(string uniqueMAC, string encryptedSchedaCompilata, string encryptedKey,	string encryptedIV, uint nonce, string digestFirmato, uint idProceduraCorrente);
 	string getPublicKeyRP(uint idProcedura);

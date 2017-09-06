@@ -76,14 +76,11 @@ ProceduraVoto DataManager::getProceduraCorrente() {
 
 			pv.setData_ora_inizio(inizio);
 			pv.setData_ora_termine(fine);
-
-
-
 		}
 	}catch(SQLException &ex){
 		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
 	}
-
+	pstmt->close();
 	delete pstmt;
 	delete resultSet;
 
@@ -124,8 +121,7 @@ vector <string> DataManager::getSchedeVoto(uint idProceduraCorrente) {
 }
 
 
-uint DataManager::getIdSessioneCorrente(uint idProceduraCorrente) {
-}
+
 
 string DataManager::getSessionKey_Postazione_Urna(string IP_Postazione,
 		uint idSessioneCorrente) {
@@ -219,6 +215,87 @@ bool DataManager::storeVotoFirmato_U(string uniqueMAC,
 	delete pstmt;
 
 	return stored;
+}
+
+SessioneVoto DataManager::getSessioneCorrenteSuccessiva(uint idProceduraCorrente) {
+	SessioneVoto sv;
+	time_t now = time(0);
+	string dt  = ctime(&now);
+	tm *ltm = localtime(&now);
+	//	int anno = ltm->tm_year +1900;
+	//	int mese = ltm->tm_mon + 1;
+	//	int day = ltm->tm_mday;
+	char buffer[20];
+	//date formatted for sql db comparing
+	strftime(buffer,20,"%Y-%m-%d",ltm); //%F equivalent to %Y-%m-%d 2001-08-23 , %X equivalent to %T 14:55:02
+	string currentDate = buffer;
+	cout << "current date: " << currentDate << endl;
+
+	memset(buffer, 0, sizeof(buffer));
+	strftime(buffer,20,"%X",ltm);
+	string currentHour = buffer;
+	cout << "current hour: " << currentHour << endl;
+
+	PreparedStatement * pstmt;
+	ResultSet * resultSet;
+	pstmt = connection->prepareStatement
+			("SELECT * FROM Sessioni WHERE idProceduraVoto=? AND `Sessioni`.`data`>=? AND ?<=chiusura order by apertura");
+
+	try{
+		pstmt->setUInt(1,idProceduraCorrente);
+		pstmt->setString(2,currentDate);
+		pstmt->setString(3,currentHour);
+
+		resultSet = pstmt->executeQuery();
+
+		//si suppone che per una certa data, la procedura corrente sia unica
+		if(resultSet->next()){
+			cout << "Sessione trovata!" << endl;
+			//estrazione dati procedura dalla tupla ottenuta
+			sv.setIdSessione(resultSet->getUInt("idSessione"));
+
+			string data = resultSet->getString("data");
+			string apertura = resultSet->getString("apertura");
+			string chiusura = resultSet->getString("chiusura");
+
+			//inserisco i dati estratti dal database in appositi oggetti struct
+			struct tm dtData,tmApertura, tmChiusura;
+			memset(&dtData, 0,sizeof(struct tm));
+			memset(&tmApertura, 0, sizeof(struct tm));
+			memset(&tmChiusura, 0, sizeof(struct tm));
+			strptime(data.c_str(), "%Y-%m-%d", &dtData);
+			strptime(apertura.c_str(), "%X", &tmApertura);
+			strptime(chiusura.c_str(), "%X", &tmChiusura);
+
+			char buffer[20];
+			strftime(buffer,20,"%H:%M",&tmApertura);
+			string oraApertura = buffer;
+
+			memset(&buffer,0,sizeof(buffer));
+			strftime(buffer,20,"%H:%M",&tmChiusura);
+			string oraChiusura = buffer;
+
+			memset(&buffer,0,sizeof(buffer));
+			strftime(buffer,20,"%d-%m-%Y",&dtData);
+			data = buffer;
+
+			sv.setOraApertura(oraApertura);
+			sv.setOraChiusura(oraChiusura);
+			sv.setData(data);
+			cout << "idSessione: " << sv.getIdSessione() << endl;
+			cout << "data: " << data << endl;
+			cout << "ora apertura seggi: " << oraApertura << endl;
+			cout << "ora chiusura seggi: " << oraChiusura << endl;
+
+
+		}
+	}catch(SQLException &ex){
+		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
+	}
+	pstmt->close();
+	delete pstmt;
+	delete resultSet;
+	return sv;
 }
 
 bool DataManager::uniqueIDSchedaCompilata(string idSchedaCompilata) {

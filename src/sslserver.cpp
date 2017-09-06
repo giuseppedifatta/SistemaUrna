@@ -538,10 +538,49 @@ void SSLServer::serviceAttivazioneSeggio(SSL * ssl) {
 	SSL_write(ssl,successValue,strlen(successValue));
 
 	//se la postazione seggio è stata attivata con successo inviamo i dati:
-	// - info procedura(descrizione, dataInizio, dataTermine),
-	// - infoSessione(oraapertura, oraChiusura),
+	// - info procedura(descrizione, dataInizio, dataTermine, stato),
+	// - infoSessione(idSessione, data,oraApertura, oraChiusura),
 	// - info token associati al seggio (id HT, username per l'autenticazione relativi agli HT)
 	if(success == 0){
+		//----infoProcedura
+		//invio descrizione Procedura
+		string descrizione = uv->getProceduraCorrente().getDescrizione();
+		sendString_SSL(ssl,descrizione);
+		//invio dtInizio
+		string dtInizio = uv->getProceduraCorrente().getData_ora_inizio();
+		sendString_SSL(ssl,dtInizio);
+
+		//invio dtFine
+		string dtTermine = uv->getProceduraCorrente().getData_ora_termine();
+		sendString_SSL(ssl,dtTermine);
+		//invio stato
+		uint statoProcedura = uv->getProceduraCorrente().getStato();
+		sendString_SSL(ssl,std::to_string(statoProcedura));
+		//----infoProcedura
+
+		//----infoSessione
+		uint idSessioneCorrenteSuccessiva = uv->getIdSessioneCorrenteSuccessiva();
+		//invio idSessioneCorrente o successiva
+		sendString_SSL(ssl,std::to_string(idSessioneCorrenteSuccessiva));
+
+		//se idSessioneCorrente o successiva != 0
+		//invia data Sessione
+		string dataSessione = uv->getSessioneCorrenteSuccessiva().getData();
+		sendString_SSL(ssl,dataSessione);
+		//invio oraApertura
+		string oraApertura = uv->getSessioneCorrenteSuccessiva().getOraApertura();
+		sendString_SSL(ssl,oraApertura);
+		//invio oraChiusura
+		string oraChiusura = uv->getSessioneCorrenteSuccessiva().getOraChiusura();
+		sendString_SSL(ssl,oraChiusura);
+		//----infoSessione
+
+		//----info HTs
+
+		//invio dei 5 idHT
+
+		//invio delle 5 username associate agli HT
+
 
 	}
 
@@ -598,6 +637,14 @@ void SSLServer::serviceAutenticazioneTecnico(SSL * ssl) {
 
 	return;
 
+}
+
+void SSLServer::sendString_SSL(SSL* ssl, string s) {
+	int length = strlen(s.c_str());
+	string length_str = std::to_string(length);
+	const char *num_bytes = length_str.c_str();
+	SSL_write(ssl, num_bytes, strlen(num_bytes));
+	SSL_write(ssl, s.c_str(), length);
 }
 
 void SSLServer::serviceAutenticazioneRP(SSL * ssl) {

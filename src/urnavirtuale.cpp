@@ -24,6 +24,12 @@ uint UrnaVirtuale::getIdProceduraCorrente(){
 	return proceduraCorrente.getIdProceduraVoto();
 }
 
+uint UrnaVirtuale::getIdSessioneCorrenteSuccessiva(){
+	sessioneCorrenteSuccessiva = model->getSessioneCorrenteSuccessiva(proceduraCorrente.getIdProceduraVoto());
+
+	return sessioneCorrenteSuccessiva.getIdSessione();
+}
+
 uint UrnaVirtuale::getNumeroSchede(uint idProceduraCorrente){
 	//contattare il db per ottenere il numero di schede abbinate alla procedura
 

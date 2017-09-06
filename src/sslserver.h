@@ -74,6 +74,7 @@ private:
 
 
     int myssl_fwrite(SSL* ssl,const char * infile);
+    void sendString_SSL(SSL * ssl, string s);
 
 
     void print_error_string(unsigned long err, const char* const label);

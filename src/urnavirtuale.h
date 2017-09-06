@@ -44,8 +44,21 @@ public:
 	int verifyMAC(string encodedSessionKey,string plain, string macEncoded);
 	bool checkMACasUniqueID(string macPacchettoVoto);
 	bool storePacchettoVoto(string idSchedaCompilata, string schedaCifrata, string kc, string ivc, uint nonce);
+	uint getIdSessioneCorrenteSuccessiva();
+
+	const ProceduraVoto& getProceduraCorrente() const {
+		return proceduraCorrente;
+	}
+
+
+	const SessioneVoto& getSessioneCorrenteSuccessiva() const {
+		return sessioneCorrenteSuccessiva;
+	}
+
+
 private:
 	ProceduraVoto proceduraCorrente;
+	SessioneVoto sessioneCorrenteSuccessiva;
 	DataManager *model;
 	bool checkFirmaDigest_U();
 	string firmaPacchettoVoto_U(string data);
