@@ -49,6 +49,7 @@ string UrnaVirtuale::getPublicKeyRP(uint idProceduraCorrente){
 
 
 int UrnaVirtuale::verifyMAC(string encodedSessionKey,string data, string macEncoded){
+	//chiamata all'interno del thread che sta offrendo il servizio
 	int success = 0;
 	cout << "Dati da verificare: " << data << endl;
 	cout << "mac da verificare: " << macEncoded << endl;
@@ -102,13 +103,13 @@ bool UrnaVirtuale::storePacchettoVoto(string idSchedaCompilata,
 	string dataToStore = idSchedaCompilata + schedaCifrata + kc + ivc + std::to_string(nonce) + std::to_string(idProcedura);
 	//TODO firmare pacchetto di voto
 
-	string signature = firmaPacchettoVoto_U(dataToStore);
+	string encodedSignature = signString_U(dataToStore);
 
 	//chiedere al model di memorizzare il pacchetto di voto sul database
-	return model->storeVotoFirmato_U(idSchedaCompilata,schedaCifrata,kc,ivc,nonce, signature, idProcedura);
+	return model->storeVotoFirmato_U(idSchedaCompilata,schedaCifrata,kc,ivc,nonce, encodedSignature, idProcedura);
 }
 
-string UrnaVirtuale::firmaPacchettoVoto_U(string data) {
+string UrnaVirtuale::signString_U(string data) {
 
 	const char * filePrivateKey = "/home/giuseppe/myCA/intermediate/private/localhost.key.pem";
 	RSA::PrivateKey privateKey = this->extractPrivatePemKey(filePrivateKey);
@@ -125,6 +126,7 @@ string UrnaVirtuale::firmaPacchettoVoto_U(string data) {
 	cout << "PrivateKey:" << s << endl;
 
 	string signature;
+	string encodedSignature;
 	////////////////////////////////////////////////
 	try{
 		// Sign and Encode
@@ -137,8 +139,14 @@ string UrnaVirtuale::firmaPacchettoVoto_U(string data) {
 		);// StringSource
 		cout << " Signature: " << signature << endl;
 
+		StringSource(signature,true,
+				new HexEncoder(
+						new StringSink(encodedSignature)
+				)//HexEncoder
+		);//StringSource
+		cout << "Signature encoded: " << encodedSignature << endl;
 
-////------ verifica signature
+		////------ verifica signature
 		FileSource certin(
 				"/home/giuseppe/myCA/intermediate/certs/localhost.cert.der", true,
 				NULL, true);
@@ -181,8 +189,67 @@ string UrnaVirtuale::firmaPacchettoVoto_U(string data) {
 		cerr << "Error: " << e.what() << endl;
 	}
 
-	return signature;
+	return encodedSignature;
 }
+
+int UrnaVirtuale::verifySignString_U(string data, string encodedSignature) {
+	int success = 1;
+	string signature;
+	StringSource(signature,true,
+			new HexEncoder(
+					new StringSink(encodedSignature)
+			)//HexEncoder
+	);//StringSource
+	cout << "Signature encoded: " << encodedSignature << endl;
+	cout << "Signature decoded: " << signature << endl;
+
+	try{
+		////------ verifica signature
+		FileSource certin(
+				"/home/giuseppe/myCA/intermediate/certs/localhost.cert.der", true,
+				NULL, true);
+		FileSink keyout("localhost-public.key", true);
+
+		getPublicKeyFromCert(certin, keyout);
+
+		//non dimenticare di chiudere il buffer!!!!!!!
+		keyout.MessageEnd();
+
+		RSA::PublicKey publicKey;
+		LoadPublicKey("localhost-public.key", publicKey);
+
+
+		ByteQueue queue;
+		publicKey.Save(queue);
+		HexEncoder encoder;
+		queue.CopyTo(encoder);
+		encoder.MessageEnd();
+
+		string s;
+		StringSink ss(s);
+		encoder.CopyTo(ss);
+		ss.MessageEnd();
+		cout << "PublicKey: " << s << endl;
+		////////////////////////////////////////////////
+		// Verify and Recover
+		RSASS<PSS, SHA256>::Verifier verifier(publicKey);
+		cout << data + signature << endl;
+		StringSource(data + signature, true,
+				new SignatureVerificationFilter(verifier, NULL,
+						SignatureVerificationFilter::THROW_EXCEPTION) // SignatureVerificationFilter
+		);// StringSource
+
+		cout << "Verified signature on message" << endl;
+		success = 0;
+	} // try
+
+	catch (CryptoPP::Exception& e) {
+		cerr << "Error: " << e.what() << endl;
+		success = 1;
+	}
+	return success;
+}
+
 
 string UrnaVirtuale::generaDigestSHA256(string data) {
 	byte const* pbData = (byte*) data.data();
@@ -297,6 +364,77 @@ CryptoPP::RSA::PrivateKey UrnaVirtuale::extractPrivatePemKey(const char * key_pe
 	return rsaPrivate;
 }
 
+string UrnaVirtuale::calcolaMAC(string encodedSessionKey, string plainText) {
+	//chiamata all'interno del thread che sta offrendo il servizio
+
+	//"11A47EC4465DD95FCD393075E7D3C4EB";
+
+	cout << "Session key: " << encodedSessionKey << endl;
+	string decodedKey;
+	StringSource (encodedSessionKey,true,
+			new HexDecoder(
+					new StringSink(decodedKey)
+			) // HexDecoder
+	); // StringSource
+
+	SecByteBlock key(reinterpret_cast<const byte*>(decodedKey.data()), decodedKey.size());
+
+
+	string macCalculated, encoded;
+
+	/*********************************\
+	    \*********************************/
+
+	// Pretty print key
+	encoded.clear();
+	StringSource(key, key.size(), true,
+			new HexEncoder(
+					new StringSink(encoded)
+			) // HexEncoder
+	); // StringSource
+	cout << "key encoded: " << encoded << endl;
+
+	cout << "plain text: " << plainText << endl;
+
+	/*********************************\
+	    \*********************************/
+
+	try
+	{
+		CryptoPP::HMAC< CryptoPP::SHA256 > hmac(key, key.size());
+
+		StringSource(plainText, true,
+				new HashFilter(hmac,
+						new StringSink(macCalculated)
+				) // HashFilter
+		); // StringSource
+	}
+	catch(const CryptoPP::Exception& e)
+	{
+		cerr << e.what() << endl;
+
+	}
+
+	/*********************************\
+	    \*********************************/
+
+	// Pretty print MAC
+	string macEncoded;
+	StringSource(macCalculated, true,
+			new HexEncoder(
+					new StringSink(macEncoded)
+			) // HexEncoder
+	); // StringSource
+	cout << "hmac encoded: " << macEncoded << endl;
+
+	verifyMAC(encodedSessionKey,plainText, macEncoded);
+
+	return macEncoded;
+}
+
+bool UrnaVirtuale::checkScrutinioEseguito(uint idProcedura) {
+	return model->isScrutinioEseguito(idProcedura);
+}
 
 void UrnaVirtuale::getPublicKeyFromCert(CryptoPP::BufferedTransformation & certin,
 		CryptoPP::BufferedTransformation & keyout) {

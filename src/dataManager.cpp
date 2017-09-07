@@ -6,6 +6,7 @@
  */
 
 #include "dataManager.h"
+#include "proceduravoto.h"
 #include <time.h>
 
 DataManager::DataManager() {
@@ -87,8 +88,30 @@ ProceduraVoto DataManager::getProceduraCorrente() {
 	return pv;
 }
 
-bool DataManager::isScrutinioEseguito() {
-	return false;
+bool DataManager::isScrutinioEseguito(uint idProcedura) {
+	PreparedStatement *pstmt;
+	ResultSet * resultSet;
+	bool eseguito = false;
+	pstmt = connection->prepareStatement("SELECT stato FROM ProcedureVoto WHERE idProceduraVoto = ?");
+	try{
+		pstmt->setUInt(1,idProcedura);
+		resultSet = pstmt->executeQuery(); //restituisce al più una tupla se la procedura esiste
+		if(resultSet->next()){
+			uint stato = resultSet->getUInt("stato");
+			if(stato == ProceduraVoto::statiProcedura::scrutinata){
+				eseguito = true;
+			}
+		}
+	}
+	catch(SQLException &ex){
+		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
+	}
+
+	pstmt->close();
+	delete pstmt;
+	delete resultSet;
+
+	return eseguito;
 }
 
 vector <string> DataManager::getSchedeVoto(uint idProceduraCorrente) {

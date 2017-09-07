@@ -33,7 +33,7 @@ public:
 	DataManager();
 	virtual ~DataManager();
 	ProceduraVoto getProceduraCorrente();
-	bool isScrutinioEseguito();
+	bool isScrutinioEseguito(uint idProcedura);
 	vector <string> getSchedeVoto(uint idProceduraCorrente);
 	SessioneVoto getSessioneCorrenteSuccessiva(uint idProceduraCorrente);
 	string getSessionKey_Postazione_Urna(string IP_Postazione, uint idSessioneCorrente);

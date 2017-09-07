@@ -36,12 +36,13 @@ public:
 	virtual ~UrnaVirtuale();
 	uint getIdProceduraCorrente();
 	uint getNumeroSchede(uint idProcedura);
-	bool getScrutinioEseguito();
-	bool decifravoti_RP();
+	bool checkScrutinioEseguito(uint idProcedura);
+	bool decifravoti_RP(uint idProcedura, CryptoPP::RSA::PrivateKey chiavePrivataRP);
 
 	vector <string> getSchede();
 	string getPublicKeyRP(uint idProceduraCorrente);
 	int verifyMAC(string encodedSessionKey,string plain, string macEncoded);
+	string calcolaMAC(string encodedSessionKey, string plainText);
 	bool checkMACasUniqueID(string macPacchettoVoto);
 	bool storePacchettoVoto(string idSchedaCompilata, string schedaCifrata, string kc, string ivc, uint nonce);
 	uint getIdSessioneCorrenteSuccessiva();
@@ -60,10 +61,10 @@ private:
 	ProceduraVoto proceduraCorrente;
 	SessioneVoto sessioneCorrenteSuccessiva;
 	DataManager *model;
-	bool checkFirmaDigest_U();
-	string firmaPacchettoVoto_U(string data);
-	string generaDigestSHA256(string data);
-	bool checkDigestSHA256(string digest, string dataToCheck);
+	string signString_U(string data);
+	int verifySignString_U(string data, string encodedSignature);
+	string generaDigestSHA256(string data); //non usato
+	bool checkDigestSHA256(string digest, string dataToCheck); //non usato
 	CryptoPP::RSA::PrivateKey extractPrivatePemKey(const char * client_key_pem);
 	void getPublicKeyFromCert(CryptoPP::BufferedTransformation & certin,
 			CryptoPP::BufferedTransformation & keyout);

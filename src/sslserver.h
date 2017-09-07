@@ -34,24 +34,17 @@ public:
     void setStopServer(bool b);
 
     enum servizi { //richiedente del servizio nei commenti
-        attivazionePV, //postazionevoto
-        attivazioneSeggio, //seggio
-        infoProcedura, //seggio
-        infoSessione, //seggio
-        risultatiVoto, //seggio
-        invioSchedaCompilata, //postazionevoto
-        scrutinio, //responsabile procedimento
-        autenticazioneTecnico, //sistema tecnico
-        autenticazioneRP, //responsabile procedimento
-
+        attivazionePV = 0, //postazionevoto
+        attivazioneSeggio = 1, //seggio
+        //infoProcedura, //seggio
+        //infoSessione, //seggio
+        risultatiVoto = 4, //seggio
+        invioSchedaCompilata = 5, //postazionevoto
+        scrutinio = 6, //responsabile procedimento
+        autenticazioneRP = 7,//responsabile procedimento
+        statusElettore = 8
     };
 
-    //mutex per l'accesso al vettore
-    //mutex mtx_vector;
-    //vector <AggiornamentoStatoPV*> aggiornamentiVector;
-    //queue<thread> threads_q;
-
-    int getListenSocketFD();
     //funzione che mette il server in ascolto delle richieste
     void startListen();
 private:
@@ -88,14 +81,13 @@ private:
     //servizi richiamati dalla funzione Servlet
 	void serviceAttivazionePV(SSL *ssl);
 	void serviceAttivazioneSeggio(SSL *ssl);
-	void serviceInfoProcedura(SSL * ssl);
-	void serviceInfoSessione(SSL *ssl);
+	//void serviceInfoProcedura(SSL * ssl);
+	//void serviceInfoSessione(SSL *ssl);
 	void serviceRisultatiVoto(SSL *ssl);
 	void serviceInvioSchedaCompilata(SSL* ssl);
-
 	void serviceScrutinio(SSL *ssl);
-	void serviceAutenticazioneTecnico(SSL *ssl);
 	void serviceAutenticazioneRP(SSL *ssl);
+	void serviceStatusElettore(SSL * ssl);
 };
 
 #endif // SSLSERVER_H

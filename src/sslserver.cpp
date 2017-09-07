@@ -183,12 +183,12 @@ void SSLServer::Servlet(int client_sock_fd) {/* threadable */
 			case servizi::attivazioneSeggio:
 				this->serviceAttivazioneSeggio(ssl);
 				break;
-			case servizi::infoProcedura:
-				this->serviceInfoProcedura(ssl);
-				break;
-			case servizi::infoSessione:
-				this->serviceInfoSessione(ssl);
-				break;
+//			case servizi::infoProcedura:
+//				this->serviceInfoProcedura(ssl);
+//				break;
+//			case servizi::infoSessione:
+//				this->serviceInfoSessione(ssl);
+//				break;
 			case servizi::risultatiVoto:
 				this->serviceRisultatiVoto(ssl);
 				break;
@@ -198,11 +198,11 @@ void SSLServer::Servlet(int client_sock_fd) {/* threadable */
 			case servizi::scrutinio:
 				this->serviceScrutinio(ssl);
 				break;
-			case servizi::autenticazioneTecnico:
-				this->serviceAutenticazioneTecnico(ssl);
-				break;
 			case servizi::autenticazioneRP:
 				this->serviceAutenticazioneRP(ssl);
+				break;
+			case servizi::statusElettore:
+				this->serviceStatusElettore(ssl);
 				break;
 			default:
 				cerr << "ServizioUrnaThread: Servizio non disponibile" << endl;
@@ -589,25 +589,25 @@ void SSLServer::serviceAttivazioneSeggio(SSL * ssl) {
 
 }
 
-void SSLServer::serviceInfoProcedura(SSL * ssl) {
-	//seggioChiamante->mutex_stdout.lock();
-	cout << "ServizioUrnaThread: service started: " << servizi::infoProcedura << endl;
-	//seggioChiamante->mutex_stdout.unlock();
-
-
-	return;
-
-}
-
-void SSLServer::serviceInfoSessione(SSL *ssl){
-	//seggioChiamante->mutex_stdout.lock();
-	cout << "ServizioUrnaThread: service started: " << servizi::infoSessione << endl;
-	//seggioChiamante->mutex_stdout.unlock();
-
-
-	return;
-
-}
+//void SSLServer::serviceInfoProcedura(SSL * ssl) {
+//	//seggioChiamante->mutex_stdout.lock();
+//	cout << "ServizioUrnaThread: service started: " << servizi::infoProcedura << endl;
+//	//seggioChiamante->mutex_stdout.unlock();
+//
+//
+//	return;
+//
+//}
+//
+//void SSLServer::serviceInfoSessione(SSL *ssl){
+//	//seggioChiamante->mutex_stdout.lock();
+//	cout << "ServizioUrnaThread: service started: " << servizi::infoSessione << endl;
+//	//seggioChiamante->mutex_stdout.unlock();
+//
+//
+//	return;
+//
+//}
 
 void SSLServer::serviceRisultatiVoto(SSL *ssl) {
 	//seggioChiamante->mutex_stdout.lock();
@@ -629,9 +629,9 @@ void SSLServer::serviceScrutinio(SSL * ssl) {
 
 }
 
-void SSLServer::serviceAutenticazioneTecnico(SSL * ssl) {
+void SSLServer::serviceStatusElettore(SSL * ssl) {
 	//seggioChiamante->mutex_stdout.lock();
-	cout << "ServizioUrnaThread: service started: " << servizi::autenticazioneTecnico << endl;
+	cout << "ServizioUrnaThread: service started: " << servizi::statusElettore << endl;
 	//seggioChiamante->mutex_stdout.unlock();
 
 
@@ -1140,3 +1140,5 @@ void SSLServer::setStopServer(bool b) {
 	//proteggere con un mutex
 	this->stopServer=b;
 }
+
+
