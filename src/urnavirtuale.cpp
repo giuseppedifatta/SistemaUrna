@@ -436,6 +436,15 @@ bool UrnaVirtuale::checkScrutinioEseguito(uint idProcedura) {
 	return model->isScrutinioEseguito(idProcedura);
 }
 
+bool UrnaVirtuale::getInfoMatricola(uint matricola, string& nome,
+		string& cognome, uint& statoVoto) {
+	return model->infoVotanteByMatricola(matricola,nome, cognome, statoVoto);
+}
+
+bool UrnaVirtuale::updateVoted(uint matricola) {
+	return model->setVoted(matricola);
+}
+
 void UrnaVirtuale::getPublicKeyFromCert(CryptoPP::BufferedTransformation & certin,
 		CryptoPP::BufferedTransformation & keyout) {
 	/**
@@ -490,4 +499,7 @@ void UrnaVirtuale::getPublicKeyFromCert(CryptoPP::BufferedTransformation & certi
 	x509Cert.SkipAll();
 }
 
+uint UrnaVirtuale::tryVote(uint matricola, uint &ruolo) {
 
+	return model->tryLockAnagrafica(matricola,ruolo);
+}

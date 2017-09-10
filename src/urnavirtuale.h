@@ -38,7 +38,8 @@ public:
 	uint getNumeroSchede(uint idProcedura);
 	bool checkScrutinioEseguito(uint idProcedura);
 	bool decifravoti_RP(uint idProcedura, CryptoPP::RSA::PrivateKey chiavePrivataRP);
-
+	void getProcedure_RP(uint idRP, tinyxml2::XMLDocument * xmlDoc);
+	uint tryVote(uint matricola,uint &ruolo);
 	vector <string> getSchede();
 	string getPublicKeyRP(uint idProceduraCorrente);
 	int verifyMAC(string encodedSessionKey,string plain, string macEncoded);
@@ -46,7 +47,8 @@ public:
 	bool checkMACasUniqueID(string macPacchettoVoto);
 	bool storePacchettoVoto(string idSchedaCompilata, string schedaCifrata, string kc, string ivc, uint nonce);
 	uint getIdSessioneCorrenteSuccessiva();
-
+	bool getInfoMatricola(uint matricola, string &nome, string &cognome, uint &statoVoto);
+	bool updateVoted(uint matricola);
 	const ProceduraVoto& getProceduraCorrente() const {
 		return proceduraCorrente;
 	}
@@ -56,7 +58,17 @@ public:
 		return sessioneCorrenteSuccessiva;
 	}
 
-
+	enum esitoLock{
+			locked,
+			alredyLocked,
+			alredyVoted,
+			notExist,
+			errorLocking
+		};
+	enum matricolaExist{
+		si,
+		no
+	};
 private:
 	ProceduraVoto proceduraCorrente;
 	SessioneVoto sessioneCorrenteSuccessiva;

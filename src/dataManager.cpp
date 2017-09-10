@@ -29,7 +29,11 @@ DataManager::~DataManager() {
 
 ProceduraVoto DataManager::getProceduraCorrente() {
 
-	ProceduraVoto pv;
+	ProceduraVoto pv; //valore determinato dal costruttore: idProceduraVoto=0;
+	bool correzioneStato = false;
+	uint statoProceduraAggiornato;
+	uint idProceduraVoto;
+
 	time_t now = time(0);
 	string dt  = ctime(&now);
 	tm *ltm = localtime(&now);
@@ -49,34 +53,61 @@ ProceduraVoto DataManager::getProceduraCorrente() {
 		pstmt->setDateTime(2,currentTime);
 		resultSet = pstmt->executeQuery();
 
+
 		//si suppone che per una certa data, la procedura corrente sia unica
 		if(resultSet->next()){
-			cout << "Procedura in corso trovata!" << endl;
-			//estrazione dati procedura dalla tupla ottenuta
-			pv.setIdProceduraVoto(resultSet->getUInt("idProceduraVoto"));
-			pv.setDescrizione(resultSet->getString("descrizione"));
-			pv.setNumSchedeVoto(resultSet->getUInt("numSchede"));
-			pv.setIdRP(resultSet->getUInt("idResponsabileProcedimento"));
+			uint numSchedeVoto = resultSet->getUInt("numSchede");
+			pv.setNumSchedeVoto(numSchedeVoto);
+			uint schedeInserite = resultSet->getUInt("schedeInserite");
+			pv.setSchedeInserite(schedeInserite);
+			uint statoOttenuto = resultSet->getUInt("stato");
 
-			string i = resultSet->getString("inizio");
-			string f = resultSet->getString("fine");
 
-			//potrei metterlo in una funzione utility
-			struct tm tmInizio, tmFine;
-			memset(&tmInizio, 0, sizeof(struct tm));
-			memset(&tmFine, 0, sizeof(struct tm));
-			strptime(i.c_str(), "%Y-%m-%d %X", &tmInizio);
-			strptime(f.c_str(), "%Y-%m-%d %X", &tmFine);
-			char buffer[20];
-			strftime(buffer,20,"%d-%m-%Y %X",&tmInizio);
-			string inizio = buffer;
-			memset(&buffer,0,sizeof(buffer));
-			strftime(buffer,20,"%d-%m-%Y %X",&tmFine);
+			if(numSchedeVoto==schedeInserite){ //se questa condizione non è vera, la creazione della procedura non è stata completata in tempo
+				cout << "Procedura in corso trovata!" << endl;
 
-			string fine = buffer;
+				//se il valore dello stato non è aggiornato, bisogna correggerlo
+				if(statoOttenuto!=ProceduraVoto::statiProcedura::in_corso){
+					correzioneStato = true;
+					statoProceduraAggiornato = ProceduraVoto::statiProcedura::in_corso;
+				}
 
-			pv.setData_ora_inizio(inizio);
-			pv.setData_ora_termine(fine);
+				//estrazione dati procedura dalla tupla ottenuta
+				idProceduraVoto = resultSet->getUInt("idProceduraVoto");
+				pv.setIdProceduraVoto(idProceduraVoto);
+				pv.setDescrizione(resultSet->getString("descrizione"));
+				pv.setNumSchedeVoto(resultSet->getUInt("numSchede"));
+				pv.setIdRP(resultSet->getUInt("idResponsabileProcedimento"));
+
+				string i = resultSet->getString("inizio");
+				string f = resultSet->getString("fine");
+
+				//potrei metterlo in una funzione utility
+				struct tm tmInizio, tmFine;
+				memset(&tmInizio, 0, sizeof(struct tm));
+				memset(&tmFine, 0, sizeof(struct tm));
+				strptime(i.c_str(), "%Y-%m-%d %X", &tmInizio);
+				strptime(f.c_str(), "%Y-%m-%d %X", &tmFine);
+				char buffer[20];
+				strftime(buffer,20,"%d-%m-%Y %X",&tmInizio);
+				string inizio = buffer;
+				memset(&buffer,0,sizeof(buffer));
+				strftime(buffer,20,"%d-%m-%Y %X",&tmFine);
+
+				string fine = buffer;
+
+				pv.setData_ora_inizio(inizio);
+				pv.setData_ora_termine(fine);
+			}
+			else{
+				//si tratta di una procedura che dovrebbe essere iniziata, ma tutte o alcune schede sono mancanti, non resta che eliminarla
+				cerr << "La creazione della procedura non è stata completata con l'inserimento di tutte le schede necessarie" << endl;
+				correzioneStato = true;
+				statoProceduraAggiornato = ProceduraVoto::statiProcedura::da_eliminare;
+			}
+
+
+
 		}
 	}catch(SQLException &ex){
 		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
@@ -84,6 +115,23 @@ ProceduraVoto DataManager::getProceduraCorrente() {
 	pstmt->close();
 	delete pstmt;
 	delete resultSet;
+
+	if(correzioneStato){
+		PreparedStatement *pstmt2;
+
+		pstmt2 = connection->prepareStatement("UPDATE ProcedureVoto SET stato=? WHERE idProceduraVoto=?");
+		try{
+			pstmt2->setUInt(1,statoProceduraAggiornato);
+			pstmt2->setUInt(2,idProceduraVoto);
+			pstmt2->executeUpdate();
+			connection->commit();
+		}catch(SQLException &ex){
+			cerr << "Exception occurred: "<<ex.getErrorCode()<<endl;
+		}
+		pstmt2->close();
+		delete pstmt2;
+
+	}
 
 	return pv;
 }
@@ -262,12 +310,14 @@ SessioneVoto DataManager::getSessioneCorrenteSuccessiva(uint idProceduraCorrente
 	PreparedStatement * pstmt;
 	ResultSet * resultSet;
 	pstmt = connection->prepareStatement
-			("SELECT * FROM Sessioni WHERE idProceduraVoto=? AND `Sessioni`.`data`>=? AND ?<=chiusura order by apertura");
+			("SELECT * FROM Sessioni WHERE idProceduraVoto=? AND "
+					"((`Sessioni`.`data`=? AND ?<=chiusura) OR `Sessioni`.`data`>? )");
 
 	try{
 		pstmt->setUInt(1,idProceduraCorrente);
 		pstmt->setString(2,currentDate);
 		pstmt->setString(3,currentHour);
+		pstmt->setString(4,currentDate);
 
 		resultSet = pstmt->executeQuery();
 
@@ -329,7 +379,6 @@ bool DataManager::uniqueIDSchedaCompilata(string idSchedaCompilata) {
 	try{
 		pstmt->setString(1,idSchedaCompilata);
 		resultSet = pstmt->executeQuery();
-		resultSet = pstmt->executeQuery();
 		if(resultSet->next()){
 			isUnique = false;
 			cout << "idSchedaCompilata " << idSchedaCompilata << " già presente, rifiutare la memorizzazione del pacchetto di voto" << endl;
@@ -345,4 +394,114 @@ bool DataManager::uniqueIDSchedaCompilata(string idSchedaCompilata) {
 	delete pstmt;
 	delete resultSet;
 	return isUnique;
+}
+
+uint DataManager::tryLockAnagrafica(uint matricola, uint &ruolo) {
+	uint esito;
+
+	PreparedStatement *pstmt;
+	ResultSet * resultSet;
+	pstmt = connection->prepareStatement("SELECT * FROM Anagrafica WHERE matricola =?");
+
+	bool lock = false;
+	try{
+		pstmt->setUInt(1,matricola);
+		resultSet = pstmt->executeQuery();
+
+		if(resultSet->next()){
+			uint stato = resultSet->getUInt("statoVoto");
+			string ruoloStr = resultSet->getString("ruoloUniversitario");
+			if(ruoloStr == "studente"){
+				ruolo = ruoloUni::studente;
+			}else if(ruoloStr == "ricercatore"){
+				ruolo = ruoloUni::ricercatore;
+			}else if(ruoloStr == "professore"){
+				ruolo = ruoloUni::professore;
+			}
+			if(stato == statoVoto::non_espresso){
+				lock = true;
+			}
+			else {
+				lock = false;
+				if(stato == statoVoto::votando){
+					esito = esitoLock::alredyLocked; //l'elettore con tale matricola sta già votando
+				}
+				else{
+					esito = esitoLock::alredyVoted; //l'elettore ha già votato
+				}
+			}
+		}
+		else{
+			cout << "matricola: "<<  matricola << " non è ancora presente in anagrafica" << endl;
+			esito = esitoLock::notExist;
+		}
+
+	}catch(SQLException &ex){
+		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
+	}
+	pstmt->close();
+	delete pstmt;
+	delete resultSet;
+
+	mutex_anagrafica.lock();
+	if (lock){
+		esito = esitoLock::locked;
+		PreparedStatement *pstmt;
+
+		pstmt = connection->prepareStatement("UPDATE Anagrafica SET statoVoto = ? WHERE matricola = ?");
+
+		try{
+			pstmt->setUInt(1,statoVoto::votando);
+			pstmt->setUInt(2,matricola);
+			pstmt->executeUpdate();
+			connection->commit();
+
+		}catch(SQLException &ex){
+			cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
+			esito = esitoLock::errorLocking;
+		}
+		pstmt->close();
+		delete pstmt;
+	}
+
+
+	mutex_anagrafica.unlock();
+
+	return esito;
+
+}
+
+bool DataManager::infoVotanteByMatricola(uint matricola, string& nome,
+		string& cognome, uint& statoVoto) {
+	bool matricolaExist = false;
+	PreparedStatement *pstmt;
+	ResultSet * resultSet;
+	pstmt = connection->prepareStatement("SELECT * FROM Anagrafica WHERE matricola =?");
+
+	try{
+		pstmt->setUInt(1,matricola);
+		resultSet = pstmt->executeQuery();
+
+		if(resultSet->next()){ //matricola è chiave primaria, al più un'occorrenza
+			matricolaExist = true;
+			statoVoto = resultSet->getUInt("statoVoto");
+			nome = resultSet->getString("nome");
+			cognome = resultSet->getString("cognome");
+		}
+		else{
+			cout << "matricola: "<<  matricola << " non è ancora presente in anagrafica" << endl;
+			statoVoto = 10; //matricola assente
+		}
+
+	}catch(SQLException &ex){
+		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
+	}
+	pstmt->close();
+	delete pstmt;
+	delete resultSet;
+
+	return matricolaExist;
+}
+
+bool DataManager::setVoted(uint matricola) {
 }

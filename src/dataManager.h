@@ -19,11 +19,12 @@
 #include <sstream>
 #include <string>
 #include <iostream>
-
+#include <mutex>
 
 using namespace tinyxml2;
 using namespace sql;
 using namespace std;
+
 class DataManager {
 private:
 
@@ -40,6 +41,28 @@ public:
 	bool storeVotoFirmato_U(string uniqueMAC, string encryptedSchedaCompilata, string encryptedKey,	string encryptedIV, uint nonce, string digestFirmato, uint idProceduraCorrente);
 	string getPublicKeyRP(uint idProcedura);
 	bool uniqueIDSchedaCompilata(string id);
+	uint tryLockAnagrafica(uint matricola, uint &ruolo);
+	bool infoVotanteByMatricola(uint matricola, string &nome, string &cognome, uint &statoVoto);
+	bool setVoted(uint matricola);
+	enum statoVoto{
+		non_espresso,
+		votando,
+		espresso
+	};
+	enum esitoLock{
+		locked,
+		alredyLocked,
+		alredyVoted,
+		notExist,
+		errorLocking
+	};
+	enum ruoloUni{
+		studente,
+		ricercatore,
+		professore
+	};
+private:
+	mutex mutex_anagrafica;
 };
 
 #endif /* DATAMANAGER_H_ */

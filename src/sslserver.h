@@ -39,10 +39,13 @@ public:
         //infoProcedura, //seggio
         //infoSessione, //seggio
         risultatiVoto = 4, //seggio
-        invioSchedaCompilata = 5, //postazionevoto
+        storeSchedaCompilata = 5, //postazionevoto
         scrutinio = 6, //responsabile procedimento
         autenticazioneRP = 7,//responsabile procedimento
-        statusElettore = 8
+        tryVoteElettore = 8,
+        infoMatricola = 9,
+        setMatricolaVoted = 10,
+        checkConnection = 11
     };
 
     //funzione che mette il server in ascolto delle richieste
@@ -68,6 +71,7 @@ private:
 
     int myssl_fwrite(SSL* ssl,const char * infile);
     void sendString_SSL(SSL * ssl, string s);
+    int receiveString_SSL(SSL *ssl, string &s);
 
 
     void print_error_string(unsigned long err, const char* const label);
@@ -84,10 +88,13 @@ private:
 	//void serviceInfoProcedura(SSL * ssl);
 	//void serviceInfoSessione(SSL *ssl);
 	void serviceRisultatiVoto(SSL *ssl);
-	void serviceInvioSchedaCompilata(SSL* ssl);
+	void serviceStoreSchedaCompilata(SSL* ssl);
 	void serviceScrutinio(SSL *ssl);
 	void serviceAutenticazioneRP(SSL *ssl);
-	void serviceStatusElettore(SSL * ssl);
+	void serviceTryVoteElettore(SSL * ssl);
+	void serviceInfoMatricola(SSL * ssl);
+	void serviceSetMatricolaVoted(SSL *ssl);
+	void serviceCheckConnection(SSL *ssl);
 };
 
 #endif // SSLSERVER_H

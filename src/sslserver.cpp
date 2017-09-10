@@ -183,17 +183,17 @@ void SSLServer::Servlet(int client_sock_fd) {/* threadable */
 			case servizi::attivazioneSeggio:
 				this->serviceAttivazioneSeggio(ssl);
 				break;
-//			case servizi::infoProcedura:
-//				this->serviceInfoProcedura(ssl);
-//				break;
-//			case servizi::infoSessione:
-//				this->serviceInfoSessione(ssl);
-//				break;
+				//			case servizi::infoProcedura:
+				//				this->serviceInfoProcedura(ssl);
+				//				break;
+				//			case servizi::infoSessione:
+				//				this->serviceInfoSessione(ssl);
+				//				break;
 			case servizi::risultatiVoto:
 				this->serviceRisultatiVoto(ssl);
 				break;
-			case servizi::invioSchedaCompilata:
-				this->serviceInvioSchedaCompilata(ssl);
+			case servizi::storeSchedaCompilata:
+				this->serviceStoreSchedaCompilata(ssl);
 				break;
 			case servizi::scrutinio:
 				this->serviceScrutinio(ssl);
@@ -201,8 +201,17 @@ void SSLServer::Servlet(int client_sock_fd) {/* threadable */
 			case servizi::autenticazioneRP:
 				this->serviceAutenticazioneRP(ssl);
 				break;
-			case servizi::statusElettore:
-				this->serviceStatusElettore(ssl);
+			case servizi::tryVoteElettore:
+				this->serviceTryVoteElettore(ssl);
+				break;
+			case servizi::infoMatricola:
+				this->serviceInfoMatricola(ssl);
+				break;
+			case servizi::setMatricolaVoted:
+				this->serviceSetMatricolaVoted(ssl);
+				break;
+			case servizi::checkConnection:
+				this->serviceCheckConnection(ssl);
 				break;
 			default:
 				cerr << "ServizioUrnaThread: Servizio non disponibile" << endl;
@@ -226,10 +235,10 @@ void SSLServer::Servlet(int client_sock_fd) {/* threadable */
 	cout << "ServizioUrnaThread: fine servlet" << endl;
 	//seggioChiamante->mutex_stdout.unlock();
 }
-void SSLServer::serviceInvioSchedaCompilata(SSL * ssl){
+void SSLServer::serviceStoreSchedaCompilata(SSL * ssl){
 	//seggioChiamante->mutex_stdout.lock();
 	cout << "ServizioUrnaThread: service started: "
-			<< servizi::invioSchedaCompilata << endl;
+			<< servizi::storeSchedaCompilata << endl;
 	//seggioChiamante->mutex_stdout.unlock();
 	//ricevo scheda cifrata
 	string schedaCifrata;
@@ -546,6 +555,7 @@ void SSLServer::serviceAttivazioneSeggio(SSL * ssl) {
 		//invio descrizione Procedura
 		string descrizione = uv->getProceduraCorrente().getDescrizione();
 		sendString_SSL(ssl,descrizione);
+
 		//invio dtInizio
 		string dtInizio = uv->getProceduraCorrente().getData_ora_inizio();
 		sendString_SSL(ssl,dtInizio);
@@ -557,7 +567,7 @@ void SSLServer::serviceAttivazioneSeggio(SSL * ssl) {
 		uint statoProcedura = uv->getProceduraCorrente().getStato();
 		sendString_SSL(ssl,std::to_string(statoProcedura));
 		//----infoProcedura
-
+		cout << "inviate informazioni procedura ."<< endl;
 		//----infoSessione
 		uint idSessioneCorrenteSuccessiva = uv->getIdSessioneCorrenteSuccessiva();
 		//invio idSessioneCorrente o successiva
@@ -574,7 +584,7 @@ void SSLServer::serviceAttivazioneSeggio(SSL * ssl) {
 		string oraChiusura = uv->getSessioneCorrenteSuccessiva().getOraChiusura();
 		sendString_SSL(ssl,oraChiusura);
 		//----infoSessione
-
+		cout << "inviate informazioni sessione" << endl;
 		//----info HTs
 
 		//invio dei 5 idHT
@@ -629,16 +639,115 @@ void SSLServer::serviceScrutinio(SSL * ssl) {
 
 }
 
-void SSLServer::serviceStatusElettore(SSL * ssl) {
+void SSLServer::serviceTryVoteElettore(SSL * ssl) {
 	//seggioChiamante->mutex_stdout.lock();
-	cout << "ServizioUrnaThread: service started: " << servizi::statusElettore << endl;
+	cout << "ServizioUrnaThread: service started: " << servizi::tryVoteElettore << endl;
 	//seggioChiamante->mutex_stdout.unlock();
 
+	//ricevi matricola elettore attivo
+	string matr;
+	receiveString_SSL(ssl,matr);
 
+	uint matricola = atoi(matr.c_str());
+	//prova a bloccare l'elettore per permettere la votazione esclusiva e univoca
+	uint ruolo;
+	uint esito = uv->tryVote(matricola,ruolo);
+
+	//restituisci alla postazione seggio l'esito dell'operazione
+	sendString_SSL(ssl,std::to_string(esito));
+
+	//se l'esito è positivo invia il ruolo della matricola che ha richiesto di votare
+	if(esito == uv->esitoLock::locked){
+		sendString_SSL(ssl,std::to_string(ruolo));
+	}
 	return;
 
 }
 
+
+
+void SSLServer::serviceInfoMatricola(SSL* ssl) {
+	//seggioChiamante->mutex_stdout.lock();
+	cout << "ServizioUrnaThread: service started: " << servizi::infoMatricola << endl;
+	//seggioChiamante->mutex_stdout.unlock();
+
+	//ricevi matricola elettore attivo
+	string matr;
+	receiveString_SSL(ssl,matr);
+	uint matricola = atoi(matr.c_str());
+	string nome, cognome;
+	uint statoVoto;
+	bool matricolaPresente;
+	matricolaPresente = uv->getInfoMatricola(matricola, nome, cognome,statoVoto);
+
+
+
+
+
+	if(matricolaPresente){
+		//comunica se la matricola è presente o no in anagrafica
+		cout << "Matricola presente, invio i dati" << endl;
+		sendString_SSL(ssl, std::to_string(uv->matricolaExist::si));
+
+		//invio stato di voto della matricola
+		sendString_SSL(ssl,std::to_string(statoVoto));
+
+		//invia nome matricola
+		sendString_SSL(ssl,nome);
+
+		//invia cognome matricola
+		sendString_SSL(ssl,cognome);
+
+	}
+	else{
+		sendString_SSL(ssl, std::to_string(uv->matricolaExist::no));
+		cout << "Matricola non presente" << endl;
+	}
+
+
+}
+void SSLServer::serviceSetMatricolaVoted(SSL* ssl) {
+
+	//ricevi matricola
+	string matr;
+	receiveString_SSL(ssl,matr);
+	uint matricola = atoi(matr.c_str());
+
+	//aggiorna lo stato della matricola sul database
+	bool setted = uv->updateVoted(matricola);
+
+	if(setted){
+		//invio esito positivo
+		sendString_SSL(ssl,to_string(0));
+	}
+	else{
+		//invio esito negativo
+		sendString_SSL(ssl,to_string(1));
+	}
+}
+
+void SSLServer::serviceCheckConnection(SSL* ssl) {
+	//nothing to do
+}
+int SSLServer::receiveString_SSL(SSL* ssl, string &s){
+
+	char dim_string[16];
+	memset(dim_string, '\0', sizeof(dim_string));
+	int bytes = SSL_read(ssl, dim_string, sizeof(dim_string));
+	if (bytes > 0) {
+		dim_string[bytes] = 0;
+		//lunghezza fileScheda da ricevere
+		uint length = atoi(dim_string);
+		char buffer[length + 1];
+		memset(buffer, '\0', sizeof(buffer));
+		bytes = SSL_read(ssl, buffer, sizeof(buffer));
+		if (bytes > 0) {
+			buffer[bytes] = 0;
+			s = buffer;
+		}
+	}
+	return bytes; //bytes read for the string received
+}
 void SSLServer::sendString_SSL(SSL* ssl, string s) {
 	int length = strlen(s.c_str());
 	string length_str = std::to_string(length);
@@ -1139,6 +1248,7 @@ void SSLServer::setStopServer(bool b) {
 
 	//proteggere con un mutex
 	this->stopServer=b;
+
 }
 
 
