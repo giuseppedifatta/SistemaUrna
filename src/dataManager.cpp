@@ -31,6 +31,7 @@ ProceduraVoto DataManager::getProceduraCorrente() {
 
 	ProceduraVoto pv; //valore determinato dal costruttore: idProceduraVoto=0;
 	bool correzioneStato = false;
+	bool resetStatoVotanti = false;
 	uint statoProceduraAggiornato;
 	uint statoVotantiResettato;
 	uint idProceduraVoto;
@@ -72,6 +73,7 @@ ProceduraVoto DataManager::getProceduraCorrente() {
 					correzioneStato = true;
 					statoProceduraAggiornato = ProceduraVoto::statiProcedura::in_corso;
 					//bisogna resettare lo stato di voto dei votanti, sta iniziando la votazione di una nuova procedura
+					resetStatoVotanti = true;
 					statoVotantiResettato = statoVoto::non_espresso;
 				}
 
@@ -122,12 +124,11 @@ ProceduraVoto DataManager::getProceduraCorrente() {
 	if(correzioneStato){
 		PreparedStatement *pstmt2;
 
-		pstmt2 = connection->prepareStatement("UPDATE ProcedureVoto SET stato=? WHERE idProceduraVoto=?"
-				"UPDATE Anagrafica SET statoVoto = ?");
+		pstmt2 = connection->prepareStatement("UPDATE ProcedureVoto SET stato=? WHERE idProceduraVoto=?");
 		try{
 			pstmt2->setUInt(1,statoProceduraAggiornato);
 			pstmt2->setUInt(2,idProceduraVoto);
-			pstmt2->setUInt(3, statoVotantiResettato);
+			//pstmt2->setUInt(3, statoVotantiResettato);
 			pstmt2->executeUpdate();
 			connection->commit();
 		}catch(SQLException &ex){
@@ -135,6 +136,23 @@ ProceduraVoto DataManager::getProceduraCorrente() {
 		}
 		pstmt2->close();
 		delete pstmt2;
+
+	}
+	if(resetStatoVotanti){
+
+		PreparedStatement *pstmt2;
+
+				pstmt2 = connection->prepareStatement("UPDATE Anagrafica SET statoVoto = ?");
+				try{
+
+					pstmt2->setUInt(1, statoVotantiResettato);
+					pstmt2->executeUpdate();
+					connection->commit();
+				}catch(SQLException &ex){
+					cerr << "Exception occurred: "<<ex.getErrorCode()<<endl;
+				}
+				pstmt2->close();
+				delete pstmt2;
 
 	}
 

@@ -790,6 +790,20 @@ void SSLServer::serviceAutenticazioneRP(SSL * ssl) {
 	cout << "ServizioUrnaThread: service started: " << servizi::autenticazioneRP << endl;
 	//seggioChiamante->mutex_stdout.unlock();
 
+	//ricevi username rp
+
+
+	//ricevi password rp
+
+	//controllo credenziali sul database
+
+	//se credenziali errate, termina
+
+
+	//se credenziali corrette, prosegui
+	//richiesta dati procedure di cui l'RP che si è loggato è responsabile
+
+	//invio dati procedure trovate
 
 	return;
 

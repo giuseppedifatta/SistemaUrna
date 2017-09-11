@@ -46,7 +46,7 @@ public:
         infoMatricola = 9,
         setMatricolaVoted = 10,
         checkConnection = 11,
-        resetMatricolaStatoVoto = 12
+        resetMatricolaStatoVoto = 12,
     };
 
     //funzione che mette il server in ascolto delle richieste
