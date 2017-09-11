@@ -45,7 +45,8 @@ public:
         tryVoteElettore = 8,
         infoMatricola = 9,
         setMatricolaVoted = 10,
-        checkConnection = 11
+        checkConnection = 11,
+        resetMatricolaStatoVoto = 12
     };
 
     //funzione che mette il server in ascolto delle richieste
@@ -95,6 +96,7 @@ private:
 	void serviceInfoMatricola(SSL * ssl);
 	void serviceSetMatricolaVoted(SSL *ssl);
 	void serviceCheckConnection(SSL *ssl);
+	void serviceResetMatricolaStatoVoto(SSL * ssl);
 };
 
 #endif // SSLSERVER_H

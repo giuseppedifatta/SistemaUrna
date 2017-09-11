@@ -49,6 +49,7 @@ public:
 	uint getIdSessioneCorrenteSuccessiva();
 	bool getInfoMatricola(uint matricola, string &nome, string &cognome, uint &statoVoto);
 	bool updateVoted(uint matricola);
+	bool resetMatricola(uint matricola);
 	const ProceduraVoto& getProceduraCorrente() const {
 		return proceduraCorrente;
 	}

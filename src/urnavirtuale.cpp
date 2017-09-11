@@ -445,6 +445,10 @@ bool UrnaVirtuale::updateVoted(uint matricola) {
 	return model->setVoted(matricola);
 }
 
+bool UrnaVirtuale::resetMatricola(uint matricola) {
+	return model->setNotVoted(matricola);
+}
+
 void UrnaVirtuale::getPublicKeyFromCert(CryptoPP::BufferedTransformation & certin,
 		CryptoPP::BufferedTransformation & keyout) {
 	/**

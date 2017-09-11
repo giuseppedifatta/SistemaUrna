@@ -44,6 +44,7 @@ public:
 	uint tryLockAnagrafica(uint matricola, uint &ruolo);
 	bool infoVotanteByMatricola(uint matricola, string &nome, string &cognome, uint &statoVoto);
 	bool setVoted(uint matricola);
+	bool setNotVoted(uint matricola);
 	enum statoVoto{
 		non_espresso,
 		votando,

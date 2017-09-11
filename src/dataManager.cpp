@@ -123,7 +123,7 @@ ProceduraVoto DataManager::getProceduraCorrente() {
 		PreparedStatement *pstmt2;
 
 		pstmt2 = connection->prepareStatement("UPDATE ProcedureVoto SET stato=? WHERE idProceduraVoto=?"
-												"UPDATE Anagrafica SET statoVoto = ?");
+				"UPDATE Anagrafica SET statoVoto = ?");
 		try{
 			pstmt2->setUInt(1,statoProceduraAggiornato);
 			pstmt2->setUInt(2,idProceduraVoto);
@@ -529,4 +529,26 @@ bool DataManager::setVoted(uint matricola) {
 
 	return voted;
 
+}
+
+bool DataManager::setNotVoted(uint matricola) {
+	bool unvoted = true;
+	PreparedStatement *pstmt;
+	pstmt = connection->prepareStatement("UPDATE Anagrafica SET statoVoto=? WHERE matricola=?");
+
+	try{
+		pstmt->setUInt(1,statoVoto::non_espresso);
+		pstmt->setUInt(2,matricola);
+
+		pstmt->executeUpdate();
+		connection->commit();
+
+	}catch(SQLException &ex){
+		unvoted = false;
+		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
+	}
+	pstmt->close();
+	delete pstmt;
+
+	return unvoted;
 }

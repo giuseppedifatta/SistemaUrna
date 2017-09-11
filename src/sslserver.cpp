@@ -213,6 +213,9 @@ void SSLServer::Servlet(int client_sock_fd) {/* threadable */
 			case servizi::checkConnection:
 				this->serviceCheckConnection(ssl);
 				break;
+			case servizi::resetMatricolaStatoVoto:
+				this->serviceResetMatricolaStatoVoto(ssl);
+				break;
 			default:
 				cerr << "ServizioUrnaThread: Servizio non disponibile" << endl;
 			}
@@ -727,7 +730,33 @@ void SSLServer::serviceSetMatricolaVoted(SSL* ssl) {
 }
 
 void SSLServer::serviceCheckConnection(SSL* ssl) {
-	//nothing to do
+	//seggioChiamante->mutex_stdout.lock();
+	cout << "ServizioUrnaThread: service started: " << servizi::checkConnection << endl;
+	//seggioChiamante->mutex_stdout.unlock();
+}
+void SSLServer::serviceResetMatricolaStatoVoto(SSL* ssl) {
+	//seggioChiamante->mutex_stdout.lock();
+	cout << "ServizioUrnaThread: service started: " << servizi::resetMatricolaStatoVoto << endl;
+	//seggioChiamante->mutex_stdout.unlock();
+
+	//ricevi matricola da resettare
+	string matr;
+	receiveString_SSL(ssl,matr);
+	uint matricola = atoi(matr.c_str());
+
+
+	//richiedi all'urna di eseguire l'operazione
+	bool resetted = uv->resetMatricola(matricola);
+
+	//invia esito operazione
+	if(resetted){
+		//invio esito positivo
+		sendString_SSL(ssl,to_string(0));
+	}
+	else{
+		//invio esito negativo
+		sendString_SSL(ssl,to_string(1));
+	}
 }
 int SSLServer::receiveString_SSL(SSL* ssl, string &s){
 
