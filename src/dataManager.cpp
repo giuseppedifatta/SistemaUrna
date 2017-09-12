@@ -639,7 +639,7 @@ vector<ProceduraVoto> DataManager::getProcedureRP(uint idRP) {
 			pv.setDescrizione(resultSet->getString("descrizione"));
 
 			uint stato = resultSet->getUInt("stato");
-			pv.setStato(pv.statoProcedura(stato));
+			pv.setStato(stato);
 
 
 			string i = resultSet->getString("inizio");

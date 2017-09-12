@@ -197,7 +197,7 @@ ProceduraVoto::statiProcedura ProceduraVoto::getStatoFromString(string stato)
 	}
 }
 
-void ProceduraVoto::setStato(uint &stato){
+void ProceduraVoto::setStato(const uint &stato){
 
 	switch(stato){
 	case ProceduraVoto::statiProcedura::creazione:
