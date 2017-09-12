@@ -461,10 +461,10 @@ string UrnaVirtuale::getStringProcedure_formattedXML_byUsernameRP(
 	vector <ProceduraVoto> procedureRP;
 	procedureRP = model->getProcedureRP(idRP);
 
-	return parseProcedureVotoRP_formattedXML(procedureRP);
+	return procedureVotoRPtoXML(procedureRP);
 }
 
-string UrnaVirtuale::parseProcedureVotoRP_formattedXML(
+string UrnaVirtuale::procedureVotoRPtoXML(
 		vector<ProceduraVoto> pvs) {
 	XMLDocument xmlDoc;
 	XMLNode * pRoot = xmlDoc.NewElement("procedureVotoRP");

@@ -52,9 +52,9 @@ public:
 
     statiProcedura getStato() const;
     void setStato(const statiProcedura &value);
+    void setStato(uint &stato);
     static string getStatoAsString(statiProcedura stato);
     static statiProcedura getStatoFromString(string stato);
-
 private:
     string descrizione;
     uint numSchedeVoto;

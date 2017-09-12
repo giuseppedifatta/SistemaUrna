@@ -4,84 +4,84 @@ using namespace std;
 
 ProceduraVoto::ProceduraVoto()
 {
-    this->data_ora_inizio = "";
-    this->data_ora_termine = "";
-    this->idRP = 0;
-    this->idProceduraVoto = 0;
-    this->descrizione = "";
-    this->numSchedeVoto = 0;
-    this->schedeInserite = 0;
-    this->stato = ProceduraVoto::statiProcedura::undefined;
+	this->data_ora_inizio = "";
+	this->data_ora_termine = "";
+	this->idRP = 0;
+	this->idProceduraVoto = 0;
+	this->descrizione = "";
+	this->numSchedeVoto = 0;
+	this->schedeInserite = 0;
+	this->stato = ProceduraVoto::statiProcedura::undefined;
 }
 
 string ProceduraVoto::getDescrizione() const
 {
-    return descrizione;
+	return descrizione;
 }
 
 void ProceduraVoto::setDescrizione(const string &value)
 {
-    descrizione = value;
+	descrizione = value;
 }
 
 uint ProceduraVoto::getNumSchedeVoto() const
 {
-    return numSchedeVoto;
+	return numSchedeVoto;
 }
 
 void ProceduraVoto::setNumSchedeVoto(const uint &value)
 {
-    numSchedeVoto = value;
+	numSchedeVoto = value;
 }
 
 uint ProceduraVoto::getIdRP() const
 {
-    return idRP;
+	return idRP;
 }
 
 void ProceduraVoto::setIdRP(const uint &value)
 {
-    idRP = value;
+	idRP = value;
 }
 
 string ProceduraVoto::getData_ora_inizio() const
 {
-    return data_ora_inizio;
+	return data_ora_inizio;
 }
 
 void ProceduraVoto::setData_ora_inizio(const string &value)
 {
-    data_ora_inizio = value;
+	data_ora_inizio = value;
 }
 
 string ProceduraVoto::getData_ora_termine() const
 {
-    return data_ora_termine;
+	return data_ora_termine;
 }
 
 void ProceduraVoto::setData_ora_termine(const string &value)
 {
-    data_ora_termine = value;
+	data_ora_termine = value;
 }
 
 void ProceduraVoto::addSessione(SessioneVoto *sessione)
 {
-    sessioni.push_back(*sessione);
+	sessioni.push_back(*sessione);
 }
 
 vector<SessioneVoto> ProceduraVoto::getSessioni() const
 {
-    return sessioni;
+	return sessioni;
 }
 
 void ProceduraVoto::resetSessioni()
 {
-    sessioni.clear();
+	sessioni.clear();
 }
 
 void ProceduraVoto::removeSessioneByIndex(int index)
 {
-    this->sessioni.erase(sessioni.begin()+index);
+	this->sessioni.erase(sessioni.begin()+index);
 }
 
 //string ProceduraVoto::getInfoRP(uint idRP)
@@ -118,83 +118,107 @@ void ProceduraVoto::removeSessioneByIndex(int index)
 
 uint ProceduraVoto::getIdProceduraVoto() const
 {
-    return idProceduraVoto;
+	return idProceduraVoto;
 }
 
 void ProceduraVoto::setIdProceduraVoto(const uint &value)
 {
-    idProceduraVoto = value;
+	idProceduraVoto = value;
 }
 
 uint ProceduraVoto::getSchedeInserite() const
 {
-    return schedeInserite;
+	return schedeInserite;
 }
 
 void ProceduraVoto::setSchedeInserite(const uint &value)
 {
-    schedeInserite = value;
+	schedeInserite = value;
 }
 
 ProceduraVoto::statiProcedura ProceduraVoto::getStato() const
 {
-    return stato;
+	return stato;
 }
 
 void ProceduraVoto::setStato(const statiProcedura &value)
 {
-    stato = value;
+	stato = value;
 }
 
 
 string ProceduraVoto::getStatoAsString(ProceduraVoto::statiProcedura stato)
 {
-    string statoAsString;
-    switch(stato){
-    case creazione:
-        statoAsString = "creazione";
-        break;
-    case programmata:
-        statoAsString = "programmata";
-        break;
-    case in_corso:
-        statoAsString = "in corso";
-        break;
-    case conclusa:
-        statoAsString = "conclusa";
-        break;
-    case scrutinata:
-        statoAsString = "scrutinata";
-        break;
-    case undefined:
-        statoAsString = "undefined";
-        break;
-    }
+	string statoAsString;
+	switch(stato){
+	case creazione:
+		statoAsString = "creazione";
+		break;
+	case programmata:
+		statoAsString = "programmata";
+		break;
+	case in_corso:
+		statoAsString = "in corso";
+		break;
+	case conclusa:
+		statoAsString = "conclusa";
+		break;
+	case scrutinata:
+		statoAsString = "scrutinata";
+		break;
+	case undefined:
+		statoAsString = "undefined";
+		break;
+	}
 
-    return statoAsString;
+	return statoAsString;
 }
 
 
 ProceduraVoto::statiProcedura ProceduraVoto::getStatoFromString(string stato)
 {
-    if(stato == "creazione"){
-        return statiProcedura::creazione;
-    }
-    if(stato == "programmata"){
-        return statiProcedura::programmata;
-    }
-    if(stato == "in corso"){
-        return statiProcedura::in_corso;
-    }
-    if(stato == "conclusa"){
-        return statiProcedura::conclusa;
-    }
-    if(stato == "scrutinata"){
-        return statiProcedura::scrutinata;
-    }
-    else{
-        return statiProcedura::undefined;
-    }
+	if(stato == "creazione"){
+		return statiProcedura::creazione;
+	}
+	if(stato == "programmata"){
+		return statiProcedura::programmata;
+	}
+	if(stato == "in corso"){
+		return statiProcedura::in_corso;
+	}
+	if(stato == "conclusa"){
+		return statiProcedura::conclusa;
+	}
+	if(stato == "scrutinata"){
+		return statiProcedura::scrutinata;
+	}
+	else{
+		return statiProcedura::undefined;
+	}
 }
 
+void ProceduraVoto::setStato(uint &stato){
 
+	switch(stato){
+	case ProceduraVoto::statiProcedura::creazione:
+		this->stato =  ProceduraVoto::statiProcedura::creazione;
+		break;
+	case ProceduraVoto::statiProcedura::programmata:
+		this->stato =  ProceduraVoto::statiProcedura::programmata;
+		break;
+	case ProceduraVoto::statiProcedura::in_corso:
+		this->stato =  ProceduraVoto::statiProcedura::in_corso;
+		break;
+	case ProceduraVoto::statiProcedura::conclusa:
+		this->stato =  ProceduraVoto::statiProcedura::conclusa;
+		break;
+	case ProceduraVoto::statiProcedura::da_eliminare:
+		this->stato =  ProceduraVoto::statiProcedura::da_eliminare;
+		break;
+	default:
+		this->stato =  ProceduraVoto::statiProcedura::undefined;
+		break;
+
+	}
+
+}

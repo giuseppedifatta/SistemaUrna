@@ -830,7 +830,8 @@ void SSLServer::serviceAutenticazioneRP(SSL * ssl) {
 
 		//richiesta dati procedure di cui l'RP che si è loggato è responsabile, tramite la sua username
 		string xmlStringProcedureRP = uv->getStringProcedure_formattedXML_byUsernameRP(username);
-
+		cout << "procedure in formato xml da mandare al sistema RP: " << endl;
+		cout << xmlStringProcedureRP << endl;
 		//invio dati procedure trovate
 		sendString_SSL(ssl,xmlStringProcedureRP);
 	}

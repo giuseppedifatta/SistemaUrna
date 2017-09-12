@@ -55,7 +55,7 @@ public:
 	bool resetMatricola(uint matricola);
 	bool authenticateRP(string userid, string password);
 	string hashPassword( string plainPass, string salt);
-	string parseProcedureVotoRP_formattedXML(vector <ProceduraVoto> pvs);
+	string procedureVotoRPtoXML(vector <ProceduraVoto> pvs);
 	uint idRPByUsername(string username);
 
 	const ProceduraVoto& getProceduraCorrente() const {

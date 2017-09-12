@@ -639,27 +639,7 @@ vector<ProceduraVoto> DataManager::getProcedureRP(uint idRP) {
 			pv.setDescrizione(resultSet->getString("descrizione"));
 
 			uint stato = resultSet->getUInt("stato");
-			switch(stato){
-			case ProceduraVoto::statiProcedura::creazione:
-				pv.setStato(ProceduraVoto::statiProcedura::creazione);
-				break;
-			case ProceduraVoto::statiProcedura::programmata:
-				pv.setStato(ProceduraVoto::statiProcedura::programmata);
-				break;
-			case ProceduraVoto::statiProcedura::in_corso:
-				pv.setStato(ProceduraVoto::statiProcedura::in_corso);
-				break;
-			case ProceduraVoto::statiProcedura::conclusa:
-				pv.setStato(ProceduraVoto::statiProcedura::conclusa);
-				break;
-			case ProceduraVoto::statiProcedura::da_eliminare:
-				pv.setStato(ProceduraVoto::statiProcedura::da_eliminare);
-				break;
-			default:
-				pv.setStato(ProceduraVoto::statiProcedura::undefined);
-				break;
-
-			}
+			pv.setStato(pv.statoProcedura(stato));
 
 
 			string i = resultSet->getString("inizio");
@@ -689,6 +669,8 @@ vector<ProceduraVoto> DataManager::getProcedureRP(uint idRP) {
 
 	return pvs;
 }
+
+
 
 string DataManager::dt_fromDB_toGMAhms(string dateDB) {
 	struct tm dtData;
