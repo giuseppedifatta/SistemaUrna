@@ -45,6 +45,9 @@ public:
 	bool infoVotanteByMatricola(uint matricola, string &nome, string &cognome, uint &statoVoto);
 	bool setVoted(uint matricola);
 	bool setNotVoted(uint matricola);
+	bool userSaltAndPassword(string userid,string &storedSalt, string &storedHashedPassword);
+	uint getIdRPByUsername(string usernameRP);
+	vector <ProceduraVoto> getProcedureRP(uint idRP);
 	enum statoVoto{
 		non_espresso,
 		votando,

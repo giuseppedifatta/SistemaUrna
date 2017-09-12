@@ -27,8 +27,11 @@
 #include "cryptopp/base64.h"
 #include "cryptopp/files.h"
 #include "cryptopp/pssr.h"
+#include <cryptopp/pwdbased.h>
 
 using namespace CryptoPP;
+using namespace tinyxml2;
+using namespace std;
 
 class UrnaVirtuale {
 public:
@@ -38,7 +41,7 @@ public:
 	uint getNumeroSchede(uint idProcedura);
 	bool checkScrutinioEseguito(uint idProcedura);
 	bool decifravoti_RP(uint idProcedura, CryptoPP::RSA::PrivateKey chiavePrivataRP);
-	void getProcedure_RP(uint idRP, tinyxml2::XMLDocument * xmlDoc);
+	string getStringProcedure_formattedXML_byUsernameRP(string usernameRP);
 	uint tryVote(uint matricola,uint &ruolo);
 	vector <string> getSchede();
 	string getPublicKeyRP(uint idProceduraCorrente);
@@ -50,6 +53,11 @@ public:
 	bool getInfoMatricola(uint matricola, string &nome, string &cognome, uint &statoVoto);
 	bool updateVoted(uint matricola);
 	bool resetMatricola(uint matricola);
+	bool authenticateRP(string userid, string password);
+	string hashPassword( string plainPass, string salt);
+	string parseProcedureVotoRP_formattedXML(vector <ProceduraVoto> pvs);
+	uint idRPByUsername(string username);
+
 	const ProceduraVoto& getProceduraCorrente() const {
 		return proceduraCorrente;
 	}
@@ -67,8 +75,12 @@ public:
 			errorLocking
 		};
 	enum matricolaExist{
-		si,
-		no
+		exist,
+		not_exist
+	};
+	enum autenticato{
+		authenticated,
+		not_authenticated
 	};
 private:
 	ProceduraVoto proceduraCorrente;

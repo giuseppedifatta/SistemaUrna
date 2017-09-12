@@ -690,7 +690,7 @@ void SSLServer::serviceInfoMatricola(SSL* ssl) {
 	if(matricolaPresente){
 		//comunica se la matricola è presente o no in anagrafica
 		cout << "Matricola presente, invio i dati" << endl;
-		sendString_SSL(ssl, std::to_string(uv->matricolaExist::si));
+		sendString_SSL(ssl, std::to_string(uv->matricolaExist::exist));
 
 		//invio stato di voto della matricola
 		sendString_SSL(ssl,std::to_string(statoVoto));
@@ -703,7 +703,7 @@ void SSLServer::serviceInfoMatricola(SSL* ssl) {
 
 	}
 	else{
-		sendString_SSL(ssl, std::to_string(uv->matricolaExist::no));
+		sendString_SSL(ssl, std::to_string(uv->matricolaExist::not_exist));
 		cout << "Matricola non presente" << endl;
 	}
 
@@ -791,20 +791,49 @@ void SSLServer::serviceAutenticazioneRP(SSL * ssl) {
 	//seggioChiamante->mutex_stdout.unlock();
 
 	//ricevi username rp
-
+	string username;
+	receiveString_SSL(ssl,username);
 
 	//ricevi password rp
+	string password;
+	receiveString_SSL(ssl,password);
 
 	//controllo credenziali sul database
+	bool autenticato;
+	uint esito;
+	if(uv->authenticateRP(username,password)){//verifica credenziali e inivia esito autenticazione
+		if(uv->idRPByUsername(username) == 0){
+			//si è loggato il tecnico o il superuser, ma non sono responsabili di procedimento
+			cerr << "credeniziali appartenenti a tecnico o superuser, rp non autenticato" << endl;
+			autenticato = false;
+			esito = uv->autenticato::not_authenticated;
+		}
+		else{
+			autenticato = true;
+			esito = uv->autenticato::authenticated;
+		}
+	}
+	else{
+		autenticato = false;
+		esito = uv->autenticato::not_authenticated;
 
-	//se credenziali errate, termina
+	}
+
+	//invio esito autenticazione
+	sendString_SSL(ssl,to_string(esito));
+
+	if(!autenticato){ //se credenziali errate, termina
+		return;
+	}
+	else{ //se credenziali corrette, prosegui
 
 
-	//se credenziali corrette, prosegui
-	//richiesta dati procedure di cui l'RP che si è loggato è responsabile
+		//richiesta dati procedure di cui l'RP che si è loggato è responsabile, tramite la sua username
+		string xmlStringProcedureRP = uv->getStringProcedure_formattedXML_byUsernameRP(username);
 
-	//invio dati procedure trovate
-
+		//invio dati procedure trovate
+		sendString_SSL(ssl,xmlStringProcedureRP);
+	}
 	return;
 
 }

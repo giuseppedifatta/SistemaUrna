@@ -142,17 +142,17 @@ ProceduraVoto DataManager::getProceduraCorrente() {
 
 		PreparedStatement *pstmt2;
 
-				pstmt2 = connection->prepareStatement("UPDATE Anagrafica SET statoVoto = ?");
-				try{
+		pstmt2 = connection->prepareStatement("UPDATE Anagrafica SET statoVoto = ?");
+		try{
 
-					pstmt2->setUInt(1, statoVotantiResettato);
-					pstmt2->executeUpdate();
-					connection->commit();
-				}catch(SQLException &ex){
-					cerr << "Exception occurred: "<<ex.getErrorCode()<<endl;
-				}
-				pstmt2->close();
-				delete pstmt2;
+			pstmt2->setUInt(1, statoVotantiResettato);
+			pstmt2->executeUpdate();
+			connection->commit();
+		}catch(SQLException &ex){
+			cerr << "Exception occurred: "<<ex.getErrorCode()<<endl;
+		}
+		pstmt2->close();
+		delete pstmt2;
 
 	}
 
@@ -569,4 +569,85 @@ bool DataManager::setNotVoted(uint matricola) {
 	delete pstmt;
 
 	return unvoted;
+}
+
+bool DataManager::userSaltAndPassword(string userid,string &storedSalt, string &storedHashedPassword) {
+	bool useridExist =false;
+	PreparedStatement * pstmt;
+	ResultSet * resultSet;
+	pstmt = connection->prepareStatement("SELECT salt, hashedPassword FROM Utenti WHERE userid = ?");
+	try{
+		pstmt->setString(1,userid);
+		resultSet = pstmt->executeQuery();
+		if(resultSet->next()){
+			useridExist = true;
+			storedSalt = resultSet->getString("salt");
+			storedHashedPassword = resultSet->getString("hashedPassword");
+		}
+		else{
+			cout << "L'utente " << userid << " non esite" << endl;
+		}
+	}catch(SQLException &ex){
+		cerr << "Exception occurred: " << ex.getErrorCode() <<endl;
+	}
+	pstmt->close();
+	delete pstmt;
+	delete resultSet;
+
+	return useridExist;
+}
+
+uint DataManager::getIdRPByUsername(string usernameRP) {
+	uint idRP;
+	PreparedStatement * pstmt;
+	ResultSet * resultSet;
+	pstmt = connection->prepareStatement
+			("SELECT idResponsabileProcedimento FROM ResponsabiliProcedimento WHERE userid=?");
+	try{
+		pstmt->setString(1,usernameRP);
+		resultSet = pstmt->executeQuery();
+		if(resultSet->next()){
+			idRP = resultSet->getUInt("idResponsabileProcedimento");
+		}
+		else{
+			cerr << "Responsabile di Procedimento non trovato: " << usernameRP << endl;
+			idRP = 0;
+		}
+	}catch(SQLException &ex){
+		cerr << "Exception occurred: " << ex.getErrorCode() <<endl;
+	}
+	pstmt->close();
+	delete pstmt;
+	delete resultSet;
+	return idRP;
+}
+
+vector<ProceduraVoto> DataManager::getProcedureRP(uint idRP) {
+	vector <ProceduraVoto> pvs;
+	PreparedStatement * pstmt;
+	ResultSet * resultSet;
+	pstmt = connection->prepareStatement
+			("SELECT * FROM ProcedureVoto where idResponsabileProcedimento=?");
+	try{
+		pstmt->setUInt(1,idRP);
+		resultSet = pstmt->executeQuery();
+		while(resultSet->next()){
+			ProceduraVoto pv;
+
+
+
+
+
+			pvs.push_back(pv);
+		}
+	}catch(SQLException &ex){
+		cerr << "Exception occurred: " << ex.getErrorCode() <<endl;
+	}
+	pstmt->close();
+	delete pstmt;
+	delete resultSet;
+
+
+
+	return pvs;
 }

@@ -449,6 +449,75 @@ bool UrnaVirtuale::resetMatricola(uint matricola) {
 	return model->setNotVoted(matricola);
 }
 
+string UrnaVirtuale::getStringProcedure_formattedXML_byUsernameRP(
+		string usernameRP) {
+
+
+	uint idRP = model->getIdRPByUsername(usernameRP);
+	if(idRP == 0){
+		return "";
+	}
+
+	vector <ProceduraVoto> procedureRP;
+	procedureRP = model->getProcedureRP(idRP);
+
+	return parseProcedureVotoRP_formattedXML(procedureRP);
+}
+
+string UrnaVirtuale::parseProcedureVotoRP_formattedXML(
+		vector<ProceduraVoto> pvs) {
+	XMLDocument xmlDoc;
+	XMLNode * pRoot = xmlDoc.NewElement("procedureVotoRP");
+	xmlDoc.InsertFirstChild(pRoot);
+
+	//per ogni procedura creiamo un nuovo elemento figlio di root e vi memorizziamo i dati al suo interno
+	for (uint i = 0; i < pvs.size(); i++){
+		//creiamo un nuovo elemento figlio di root
+		XMLElement * pProcedura = xmlDoc.NewElement("procedura");
+		pRoot->InsertEndChild(pProcedura);
+
+		XMLElement * pElement;
+
+		//aggiungiamo ad ogni nodo procedura i suoi dati dentro suoi elementi figli
+
+		uint idProcedura = pvs.at(i).getIdProceduraVoto();
+		pElement = xmlDoc.NewElement("id");
+		pElement->SetText(idProcedura);
+		pProcedura->InsertEndChild(pElement);
+
+		string descrizione = pvs.at(i).getDescrizione();
+		pElement = xmlDoc.NewElement("descrizione");
+		pElement->SetText(descrizione.c_str());
+		pProcedura->InsertEndChild(pElement);
+
+		string dtInizio = pvs.at(i).getData_ora_inizio();
+		pElement = xmlDoc.NewElement("inzio");
+		pElement->SetText(dtInizio.c_str());
+		pProcedura->InsertEndChild(pElement);
+
+		string dtTermine = pvs.at(i).getData_ora_termine();
+		pElement = xmlDoc.NewElement("fine");
+		pElement->SetText(dtTermine.c_str());
+		pProcedura->InsertEndChild(pElement);
+
+		uint stato = pvs.at(i).getStato();
+		pElement = xmlDoc.NewElement("stato");
+		pElement->SetText(stato);
+		pProcedura->InsertEndChild(pElement);
+	}
+
+
+
+	XMLPrinter printer;
+	xmlDoc.Print( &printer );
+	string xmlStringProcedureRP = printer.CStr();
+	return xmlStringProcedureRP;
+}
+
+uint UrnaVirtuale::idRPByUsername(string username) {
+	return model->getIdRPByUsername(username);
+}
+
 void UrnaVirtuale::getPublicKeyFromCert(CryptoPP::BufferedTransformation & certin,
 		CryptoPP::BufferedTransformation & keyout) {
 	/**
@@ -507,3 +576,45 @@ uint UrnaVirtuale::tryVote(uint matricola, uint &ruolo) {
 
 	return model->tryLockAnagrafica(matricola,ruolo);
 }
+
+
+
+bool UrnaVirtuale::authenticateRP(string userid, string password){
+	//ottengo dal database salt e hash della password del tecnico
+	string storedSalt;
+	string storedHashedPassword;
+	model->userSaltAndPassword(userid, storedSalt,storedHashedPassword);
+
+
+	string calculatedHashedPassword = hashPassword(password,storedSalt);
+
+	if(calculatedHashedPassword==storedHashedPassword){
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
+string UrnaVirtuale::hashPassword( string plainPass, string salt){
+
+	//100 iterazioni
+	uint iterations = 100;
+	SecByteBlock result(32);
+	string hexResult;
+
+	PKCS5_PBKDF2_HMAC<SHA256> pbkdf;
+
+	pbkdf.DeriveKey(result, result.size(),0x00,(byte *) plainPass.data(), plainPass.size(),(byte *) salt.data(), salt.size(),iterations);
+
+	//ArraySource resultEncoder(result,result.size(), true, new HexEncoder(new StringSink(hexResult)));
+
+	HexEncoder hex(new StringSink(hexResult));
+	hex.Put(result.data(), result.size());
+	hex.MessageEnd();
+
+	return hexResult;
+
+}
+
+
