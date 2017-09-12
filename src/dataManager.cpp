@@ -633,10 +633,48 @@ vector<ProceduraVoto> DataManager::getProcedureRP(uint idRP) {
 		resultSet = pstmt->executeQuery();
 		while(resultSet->next()){
 			ProceduraVoto pv;
+			uint id = resultSet->getUInt("idProceduraVoto");
+			pv.setIdProceduraVoto(id);
+
+			pv.setDescrizione(resultSet->getString("descrizione"));
+
+			uint stato = resultSet->getUInt("stato");
+			switch(stato){
+			case ProceduraVoto::statiProcedura::creazione:
+				pv.setStato(ProceduraVoto::statiProcedura::creazione);
+				break;
+			case ProceduraVoto::statiProcedura::programmata:
+				pv.setStato(ProceduraVoto::statiProcedura::programmata);
+				break;
+			case ProceduraVoto::statiProcedura::in_corso:
+				pv.setStato(ProceduraVoto::statiProcedura::in_corso);
+				break;
+			case ProceduraVoto::statiProcedura::conclusa:
+				pv.setStato(ProceduraVoto::statiProcedura::conclusa);
+				break;
+			case ProceduraVoto::statiProcedura::da_eliminare:
+				pv.setStato(ProceduraVoto::statiProcedura::da_eliminare);
+				break;
+			default:
+				pv.setStato(ProceduraVoto::statiProcedura::undefined);
+				break;
+
+			}
 
 
+			string i = resultSet->getString("inizio");
+			string f = resultSet->getString("fine");
+
+			string dt_inizio = dt_fromDB_toGMAhms(i);
+			cout << "inizio procedura :" << dt_inizio << endl;
+			string dt_fine = dt_fromDB_toGMAhms(i);
+			cout << "termine procedura :" << dt_fine << endl;
+
+			pv.setData_ora_inizio(dt_inizio);
+			pv.setData_ora_termine(dt_fine);
 
 
+			cout << "Stiamo aggiungendo la procedura " << id << " al vettore delle procedure di RP: " << idRP << endl;
 
 			pvs.push_back(pv);
 		}
@@ -650,4 +688,16 @@ vector<ProceduraVoto> DataManager::getProcedureRP(uint idRP) {
 
 
 	return pvs;
+}
+
+string DataManager::dt_fromDB_toGMAhms(string dateDB) {
+	struct tm dtData;
+	memset(&dtData, 0, sizeof(struct tm));
+	strptime(dateDB.c_str(), "%Y-%m-%d %X", &dtData);
+	char buffer[20];
+	strftime(buffer,20,"%d-%m-%Y %X",&dtData);
+	string dataGMAhms = buffer;
+	return dataGMAhms;
+
+
 }

@@ -67,6 +67,7 @@ public:
 	};
 private:
 	mutex mutex_anagrafica;
+	string dt_fromDB_toGMAhms(string dateDBformatted);
 };
 
 #endif /* DATAMANAGER_H_ */
