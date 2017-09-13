@@ -491,7 +491,7 @@ string UrnaVirtuale::procedureVotoRPtoXML(
 		pProcedura->InsertEndChild(pElement);
 
 		string dtInizio = pvs.at(i).getData_ora_inizio();
-		pElement = xmlDoc.NewElement("inzio");
+		pElement = xmlDoc.NewElement("inizio");
 		pElement->SetText(dtInizio.c_str());
 		pProcedura->InsertEndChild(pElement);
 

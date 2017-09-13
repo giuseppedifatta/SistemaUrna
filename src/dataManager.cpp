@@ -647,7 +647,7 @@ vector<ProceduraVoto> DataManager::getProcedureRP(uint idRP) {
 
 			string dt_inizio = dt_fromDB_toGMAhms(i);
 			cout << "inizio procedura :" << dt_inizio << endl;
-			string dt_fine = dt_fromDB_toGMAhms(i);
+			string dt_fine = dt_fromDB_toGMAhms(f);
 			cout << "termine procedura :" << dt_fine << endl;
 
 			pv.setData_ora_inizio(dt_inizio);
