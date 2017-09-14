@@ -530,9 +530,43 @@ bool UrnaVirtuale::doScrutinio(uint idProcedura, string derivedKey) {
 
 	//ottengo la chiave privata di RP dal database e la decifro con la chiave simmetrica ricevuta dal responsabile di procedimento che è loggato
 	string encryptedPrivateKeyRP = model->getEncryptedPR_RP(idRP);
-
+	cout << "chiave privata RP cifrata: " << encryptedPrivateKeyRP << endl;
 	//decifra con algoritmo simmetrico la chiave privata di RP
 	string privateKeyRP = recoverPrivateKeyRP(encryptedPrivateKeyRP,derivedKey);
+	cout << "chiave privata RP decifrata: " << privateKeyRP<< endl;
+
+	//ottenere i pacchetti voto per la procedura
+	vector <PacchettoVoto> pv = model->getPacchettiVoto(idProcedura);
+
+
+	//per ogni pacchetto
+	for(uint i=0; i< pv.size();i++){
+	//1.verificare la firma, quindi accettare o rifiutare un pacchetto
+
+	//se non è stato rifiutare
+	//2. decifrare chiave simmetrica e iv del pacchetto di voto con la chiave privata di RP
+
+	//3. usare chiave simmetrica e iv per decifrare la scheda cifrata, così da riottenere i campi in chiaro
+
+	//4. confrontare l'Nonce decifrato con quello in chiaro del pacchetto
+
+	//se il confronto tra i due nonce dà esito positivo
+	//5.parsare la scheda estraendo le informazioni di:
+	//5.1seggio di provenienza
+	//5.2id Scheda che permette di risalire a quale votazione fanno riferimento le preferenze contenute nella scheda compilata
+	//5.3numero preferenze, così da verificare che il numero di preferenze presenti non sia superiore a quello massimo,
+	//anche se questa situazione è impedita dai controlli di compilazione del form, presso la postazione in cui i voti sono espressi
+	//5.4 matricole relative alle preferenze
+
+	//6. conteggiare le preferenze
+	}
+
+	//7. tutte le schede sono state scrutinate, creare un file xml in cui conservare queste informazioni
+	//preferenze divise per seggio, per idScheda, per lista, per candidato
+	//totale dei voti non distinti per seggio?
+
+
+	//8. salvare file xml sul database e aggiornare lo stato della procedura su scrutinata
 
 
 }
@@ -657,9 +691,9 @@ string UrnaVirtuale::recoverPrivateKeyRP(string encryptedPrivateKeyRP, string de
 	memset(iv, 0x00,AES::MAX_KEYLENGTH);
 
 	string encryptedPrivateKeyDecoded;
-	StringSource(encryptedPrivateKeyDecoded,true,
+	StringSource(encryptedPrivateKeyRP,true,
 			new HexDecoder(
-					new StringSink(encryptedPrivateKeyRP)
+					new StringSink(encryptedPrivateKeyDecoded)
 			) // HexDecoder
 	); // StringSource
 
@@ -670,9 +704,9 @@ string UrnaVirtuale::recoverPrivateKeyRP(string encryptedPrivateKeyRP, string de
 
 	//codifichiamo la chiave priva in esadecimale
 	string encodedPrivateKey;
-	StringSource(encodedPrivateKey,true,
+	StringSource(privateKey,true,
 			new HexEncoder(
-					new StringSink(privateKey)
+					new StringSink(encodedPrivateKey)
 			) // HexEncoder
 	); // StringSource
 	return encodedPrivateKey;

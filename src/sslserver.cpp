@@ -664,10 +664,12 @@ void SSLServer::serviceScrutinio(SSL * ssl) {
 	string strProcedura;
 	receiveString_SSL(ssl,strProcedura);
 	uint idProcedura = atoi(strProcedura.c_str());
+	cout << "Inizio scrutinio per la procedura: " << idProcedura << endl;
 
 	//ricevi chiave per decifrare la chiave privata di RP
 	string derivedKey;
 	receiveString_SSL(ssl,derivedKey);
+	cout << "Ricevuta chiave simmetrica per decifrare chiave privata di RP: " << derivedKey << endl;
 
 
 	uint numSchedeDaScrutinare = 0; //

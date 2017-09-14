@@ -41,7 +41,7 @@ public:
 	vector <string> getSchedeVoto(uint idProceduraCorrente);
 	SessioneVoto getSessioneCorrenteSuccessiva(uint idProceduraCorrente);
 	string getSessionKey_Postazione_Urna(string IP_Postazione, uint idSessioneCorrente);
-	bool storeVotoFirmato_U(string uniqueMAC, string encryptedSchedaCompilata, string encryptedKey,	string encryptedIV, uint nonce, string digestFirmato, uint idProceduraCorrente);
+	//bool storeVotoFirmato_U(string uniqueMAC, string encryptedSchedaCompilata, string encryptedKey,	string encryptedIV, uint nonce, string digestFirmato, uint idProceduraCorrente);
 	string getPublicKeyRP(uint idProcedura);
 	bool uniqueIDSchedaCompilata(string id);
 	uint tryLockAnagrafica(uint matricola, uint &ruolo);
@@ -54,6 +54,7 @@ public:
 	uint getIdRPByProcedura(uint idProcedura);
 	string getEncryptedPR_RP(uint idRP);
 	uint getNumberSchedeCompilate(uint idProcedura);
+	vector <PacchettoVoto> getPacchettiVoto(uint idProcedura);
 
 	//non usare con l'oggetto model di urnavirtuale.h
 	void votedNotCommit(uint matricola);

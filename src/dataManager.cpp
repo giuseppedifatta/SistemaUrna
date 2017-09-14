@@ -270,55 +270,55 @@ string DataManager::getPublicKeyRP(uint idProcedura){
 	return publicKey;
 }
 
-bool DataManager::storeVotoFirmato_U(string uniqueMAC,
-		string encryptedSchedaCompilata, string encryptedKey,
-		string encryptedIV, uint nonce, string digestFirmato,
-		uint idProceduraCorrente) {
-	bool stored = true;
-	PreparedStatement *pstmt;
-
-	pstmt = connection->prepareStatement("INSERT INTO SchedeCompilate (`idSchedaCompilata`, `idProcedura`,"
-			" `fileVotoCifrato`, `chiavecifrata`, `ivcifrato`, `digestUrna`, `nonce`) VALUES(?,?,?,?,?,?,?)");
-	try{
-		pstmt->setString(1,uniqueMAC);
-		pstmt->setUInt(2,idProceduraCorrente);
-
-		//std::stringstream ss(schedaStr);
-		//        pstmt->setBlob(1,&ss);
-		cout << "toBlob: " << encryptedSchedaCompilata << endl;
-
-		std::istringstream is(encryptedSchedaCompilata);
-
-		pstmt->setBlob(3,&is);
-
-
-
-		std::istringstream key(encryptedKey);
-		pstmt->setBlob(4,&key);
-
-
-		std::istringstream iv(encryptedIV);
-		pstmt->setBlob(5,&iv);
-
-		std::istringstream d(digestFirmato);
-		pstmt->setBlob(6,&d);
-
-		pstmt->setUInt(7,nonce);
-
-		pstmt->executeUpdate();
-		connection->commit();
-
-
-	}catch(SQLException &ex){
-		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
-		stored = false;
-	}
-
-	pstmt->close();
-	delete pstmt;
-
-	return stored;
-}
+//bool DataManager::storeVotoFirmato_U(string uniqueMAC,
+//		string encryptedSchedaCompilata, string encryptedKey,
+//		string encryptedIV, uint nonce, string digestFirmato,
+//		uint idProceduraCorrente) {
+//	bool stored = true;
+//	PreparedStatement *pstmt;
+//
+//	pstmt = connection->prepareStatement("INSERT INTO SchedeCompilate (`idSchedaCompilata`, `idProcedura`,"
+//			" `fileVotoCifrato`, `chiavecifrata`, `ivcifrato`, `signatureUrna`, `nonce`) VALUES(?,?,?,?,?,?,?)");
+//	try{
+//		pstmt->setString(1,uniqueMAC);
+//		pstmt->setUInt(2,idProceduraCorrente);
+//
+//		//std::stringstream ss(schedaStr);
+//		//        pstmt->setBlob(1,&ss);
+//		cout << "toBlob: " << encryptedSchedaCompilata << endl;
+//
+//		std::istringstream is(encryptedSchedaCompilata);
+//
+//		pstmt->setBlob(3,&is);
+//
+//
+//
+//		std::istringstream key(encryptedKey);
+//		pstmt->setBlob(4,&key);
+//
+//
+//		std::istringstream iv(encryptedIV);
+//		pstmt->setBlob(5,&iv);
+//
+//		std::istringstream d(digestFirmato);
+//		pstmt->setBlob(6,&d);
+//
+//		pstmt->setUInt(7,nonce);
+//
+//		pstmt->executeUpdate();
+//		connection->commit();
+//
+//
+//	}catch(SQLException &ex){
+//		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
+//		stored = false;
+//	}
+//
+//	pstmt->close();
+//	delete pstmt;
+//
+//	return stored;
+//}
 
 SessioneVoto DataManager::getSessioneCorrenteSuccessiva(uint idProceduraCorrente) {
 	SessioneVoto sv;
@@ -764,6 +764,60 @@ uint DataManager::getNumberSchedeCompilate(uint idProcedura) {
 	return numSchede; //HexEncoded
 }
 
+vector<PacchettoVoto> DataManager::getPacchettiVoto(uint idProcedura) {
+	PreparedStatement *pstmt;
+	ResultSet* resultSet;
+	pstmt = connection->prepareStatement("SELECT * FROM SchedeCompilate WHERE idProcedura=?");
+	vector <PacchettoVoto> pacchetti;
+	try{
+		pstmt->setUInt(1,idProcedura);
+		resultSet = pstmt->executeQuery();
+		while(resultSet->next()){
+			PacchettoVoto pv;
+			string idSchedaCompilata = resultSet->getString("idSchedaCompilata");
+			pv.setMacId(idSchedaCompilata);
+
+			uint idProcedura = resultSet->getUInt("idProcedura");
+			pv.setIdProcedura(idProcedura);
+
+			std::istream *blobScheda = resultSet->getBlob("fileVotoCifrato");
+			std::istreambuf_iterator<char> isbScheda = std::istreambuf_iterator<char>(*blobScheda);
+			std::string fileVotoCifrato = std::string(isbScheda, std::istreambuf_iterator<char>());
+			pv.setSchedaCifrata(fileVotoCifrato);
+
+			std::istream *blobKC = resultSet->getBlob("chiavecifrata");
+			std::istreambuf_iterator<char> isbKC = std::istreambuf_iterator<char>(*blobKC);
+			std::string KC = std::string(isbKC, std::istreambuf_iterator<char>());
+			pv.setKc(KC);
+
+			std::istream *blobIVC = resultSet->getBlob("ivcifrato");
+			std::istreambuf_iterator<char> isbIVC = std::istreambuf_iterator<char>(*blobIVC);
+			std::string IVC = std::string(isbIVC, std::istreambuf_iterator<char>());
+			pv.setIvc(IVC);
+
+			std::istream *blobSignature = resultSet->getBlob("signatureUrna");
+			std::istreambuf_iterator<char> isbSignature = std::istreambuf_iterator<char>(*blobSignature);
+			std::string signature = std::string(isbSignature, std::istreambuf_iterator<char>());
+			pv.setEncodedSign(signature);
+
+			uint nonce = resultSet->getUInt("nonce");
+			pv.setNonce(nonce);
+
+			pacchetti.push_back(pv);
+
+		}
+
+
+	}catch(SQLException &ex){
+		//voted = false;
+		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
+	}
+	pstmt->close();
+	delete pstmt;
+
+	return pacchetti;
+}
+
 string DataManager::dt_fromDB_toGMAhms(string dateDB) {
 	struct tm dtData;
 	memset(&dtData, 0, sizeof(struct tm));
@@ -810,7 +864,7 @@ void DataManager::storePacchettiSignedNoCommit(
 		PreparedStatement *pstmt;
 
 		pstmt = connection->prepareStatement("INSERT INTO SchedeCompilate (`idSchedaCompilata`, `idProcedura`,"
-				" `fileVotoCifrato`, `chiavecifrata`, `ivcifrato`, `digestUrna`, `nonce`) VALUES(?,?,?,?,?,?,?)");
+				" `fileVotoCifrato`, `chiavecifrata`, `ivcifrato`, `signatureUrna`, `nonce`) VALUES(?,?,?,?,?,?,?)");
 		try{
 			pstmt->setString(1,uniqueMAC);
 			pstmt->setUInt(2,idProceduraCorrente);
@@ -862,7 +916,7 @@ void DataManager::myCommit() {
 
 void DataManager::myRollback() {
 
-cout << "commit dei pacchetti e della matricola come votata" << endl;
+	cout << "commit dei pacchetti e della matricola come votata" << endl;
 	try{
 		connection->rollback();
 	}catch(SQLException &ex){
