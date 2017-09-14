@@ -142,7 +142,7 @@ ProceduraVoto DataManager::getProceduraCorrente() {
 
 		PreparedStatement *pstmt2;
 
-		pstmt2 = connection->prepareStatement("UPDATE Anagrafica SET statoVoto = ?");
+		pstmt2 = connection->prepareStatement("SET SQL_SAFE_UPDATES = 0;SET UPDATE Anagrafica SET statoVoto = ?;SET SQL_SAFE_UPDATES = 1;");
 		try{
 
 			pstmt2->setUInt(1, statoVotantiResettato);
@@ -199,8 +199,8 @@ vector <string> DataManager::getSchedeVoto(uint idProceduraCorrente) {
 			std::istream *blobData = resultSet->getBlob("fileScheda");
 			std::istreambuf_iterator<char> isb = std::istreambuf_iterator<char>(*blobData);
 			std::string blobString = std::string(isb, std::istreambuf_iterator<char>());
-			cout << "La scheda ottenuta ha id: " << resultSet->getUInt("codSchedaVoto") << endl;
-			cout << blobString << endl;
+			//cout << "La scheda ottenuta ha id: " << resultSet->getUInt("codSchedaVoto") << endl;
+			//cout << blobString << endl;
 			schedeVoto.push_back(blobString);
 		}
 	}catch(SQLException &ex){
@@ -284,17 +284,25 @@ bool DataManager::storeVotoFirmato_U(string uniqueMAC,
 		pstmt->setString(1,uniqueMAC);
 		pstmt->setUInt(2,idProceduraCorrente);
 
-		std::stringstream ss(encryptedSchedaCompilata);
-		pstmt->setBlob(3,&ss);
+		//std::stringstream ss(schedaStr);
+		//        pstmt->setBlob(1,&ss);
+		cout << "toBlob: " << encryptedSchedaCompilata << endl;
 
-		ss = std::stringstream(encryptedKey);
-		pstmt->setBlob(4,&ss);
+		std::istringstream is(encryptedSchedaCompilata);
 
-		ss = std::stringstream(encryptedIV);
-		pstmt->setBlob(5,&ss);
+		pstmt->setBlob(3,&is);
 
-		ss = std::stringstream(digestFirmato);
-		pstmt->setBlob(6,&ss);
+
+
+		std::istringstream key(encryptedKey);
+		pstmt->setBlob(4,&key);
+
+
+		std::istringstream iv(encryptedIV);
+		pstmt->setBlob(5,&iv);
+
+		std::istringstream d(digestFirmato);
+		pstmt->setBlob(6,&d);
 
 		pstmt->setUInt(7,nonce);
 
@@ -670,7 +678,90 @@ vector<ProceduraVoto> DataManager::getProcedureRP(uint idRP) {
 	return pvs;
 }
 
+uint DataManager::getIdRPByProcedura(uint idProcedura) {
+	uint idRP = 0;
+	PreparedStatement * pstmt;
+	ResultSet * resultSet;
+	pstmt = connection->prepareStatement
+			("SELECT idResponsabileProcedimento FROM ProcedureVoto WHERE idProceduraVoto=?");
+	try{
+		pstmt->setUInt(1,idProcedura);
+		resultSet = pstmt->executeQuery();
+		if(resultSet->next()){
+			idRP = resultSet->getUInt("idResponsabileProcedimento");
+		}
+		else{
+			//non dovrebbe mai verificarsi, se l'idProcedura è stato ricavato dal database
+			cerr << "Nessuna procedura con id: " << idProcedura << endl;
+			idRP = 0;
+		}
+	}catch(SQLException &ex){
+		cerr << "Exception occurred: " << ex.getErrorCode() <<endl;
+	}
+	pstmt->close();
+	delete pstmt;
+	delete resultSet;
+	return idRP;
+}
 
+string DataManager::getEncryptedPR_RP(uint idRP) {
+	//restituisce la chiave privata cifrata di RP, codificata esadecimale
+	string EncryptedPR_RP;
+
+	PreparedStatement * pstmt;
+	ResultSet * resultSet;
+	pstmt = connection->prepareStatement
+			("SELECT encryptedPrivateKey FROM ResponsabiliProcedimento WHERE idResponsabileProcedimento= ?");
+	try{
+
+		pstmt->setUInt(1,idRP);
+		resultSet = pstmt->executeQuery();
+		if(resultSet->next()){
+			std::istream *blobData = resultSet->getBlob("encryptedPrivateKey");
+			std::istreambuf_iterator<char> isb = std::istreambuf_iterator<char>(*blobData);
+			EncryptedPR_RP = std::string(isb, std::istreambuf_iterator<char>());
+
+		}
+		else{
+			//non dovrebbe mai verificarsi, se l'idProcedura è stato ricavato dal database
+			cerr << "Responsabile di procedimento " << idRP << " non trovato" << endl;
+			idRP = 0;
+		}
+	}catch(SQLException &ex){
+		cerr << "Exception occurred: " << ex.getErrorCode() <<endl;
+	}
+	pstmt->close();
+	delete pstmt;
+	delete resultSet;
+
+	return EncryptedPR_RP; //HexEncoded
+
+}
+
+uint DataManager::getNumberSchedeCompilate(uint idProcedura) {
+	uint numSchede;
+	PreparedStatement * pstmt;
+	ResultSet * resultSet;
+	pstmt = connection->prepareStatement
+			("SELECT COUNT(*)  AS totaleSchede FROM SchedeCompilate WHERE idProcedura = ?");
+	try{
+
+		pstmt->setUInt(1,idProcedura);
+		resultSet = pstmt->executeQuery();
+		if(resultSet->next()){
+			numSchede = resultSet->getUInt("totaleSchede");
+
+		}
+
+	}catch(SQLException &ex){
+		cerr << "Exception occurred: " << ex.getErrorCode() <<endl;
+	}
+	pstmt->close();
+	delete pstmt;
+	delete resultSet;
+
+	return numSchede; //HexEncoded
+}
 
 string DataManager::dt_fromDB_toGMAhms(string dateDB) {
 	struct tm dtData;

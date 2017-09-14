@@ -309,7 +309,7 @@ void SSLServer::serviceStoreSchedaCompilata(SSL * ssl){
 		if (bytes > 0) {
 			buffer1[bytes] = 0;
 			nonce = atoi(buffer1);
-			cout << "Nonce:  " << nonce << endl;
+			cout << "Nonce: " << nonce << endl;
 		}
 	}
 	//ricevo mac
@@ -326,8 +326,7 @@ void SSLServer::serviceStoreSchedaCompilata(SSL * ssl){
 		if (bytes > 0) {
 			buffer1[bytes] = 0;
 			macPacchettoVoto = buffer1;
-			cout << "Mac del pacchetto di voto ricevuto: "
-					<< macPacchettoVoto << endl;
+			cout << "Mac del pacchetto di voto ricevuto: " << macPacchettoVoto << endl;
 		}
 	}
 	//verifica del MAC
@@ -346,6 +345,7 @@ void SSLServer::serviceStoreSchedaCompilata(SSL * ssl){
 		//controllo che il mac sia adeguato come identificativo del pacchetto di voto sul database
 		if (uv->checkMACasUniqueID(macPacchettoVoto)) {
 			string idSchedaCompilata = macPacchettoVoto;
+
 			if(uv->storePacchettoVoto(idSchedaCompilata, schedaCifrata, kc, ivc, nonce)){
 				stored = 0;
 			}
@@ -357,6 +357,7 @@ void SSLServer::serviceStoreSchedaCompilata(SSL * ssl){
 		//storedVoto = 0 -> stored
 		//storedVoto = 1 -> unable to store
 		cout << "Esito operazione di storing del pacchetto di voto: " << storedVoto << endl;
+
 		//invio valore di successo o insuccesso della memorizzazione del voto
 		SSL_write(ssl, storedVoto, strlen(storedVoto));
 	} else {
@@ -430,27 +431,25 @@ void SSLServer::serviceAttivazionePV(SSL * ssl) {
 
 
 	//invio delle schede alla postazione di voto
+	cout << "invio schede di voto alla postazione attivata" << endl;
 	if(success == 0){
 		//inviare schede di voto per la procedura corrente
-		//1.comunicare il numero di schede da inviare
-		uint numSchede = uv->getNumeroSchede(idProceduraCorrente);
-
-		stringstream ssNumSchede;
-		ssNumSchede << numSchede;
-		string strNumSchede = ssNumSchede.str();
-		const char * charNumSchede = strNumSchede.c_str();
-		//uvChiamante->mutex_stdout.lock();
-		cout << "ServizioUrnaThread: invio numSchede: " << charNumSchede << endl;
-		//uvChiamante->mutex_stdout.unlock();
-		SSL_write(ssl,charNumSchede,strlen(charNumSchede));
 
 		//ottenere dal db le schede di voto per la procedura in corso
 		vector <string> schede = uv->getSchede();
+
+		//1.comunicare il numero di schede da inviare
+		uint numSchede = schede.size();
+		cout << "Devo inviare " << numSchede << " schede alla postazione di voto" << endl;
+
+		sendString_SSL(ssl, to_string(numSchede));
+
+
 		//2.invio del numero di schede precedentemente comunicato
 
 		for(unsigned int i = 0; i< schede.size(); i++){
 			//myssl_fwrite(ssl,"scheda_voto_1.xml");
-
+			cout << "invio scheda: " << schede.at(i) << endl;
 
 			const char *file_xml = schede.at(i).c_str();
 			int length = strlen(file_xml);
@@ -637,6 +636,23 @@ void SSLServer::serviceScrutinio(SSL * ssl) {
 	cout << "ServizioUrnaThread: service started: " << servizi::scrutinio << endl;
 	//seggioChiamante->mutex_stdout.unlock();
 
+	//ricevi idProcedura
+	string strProcedura;
+	receiveString_SSL(ssl,strProcedura);
+	uint idProcedura = atoi(strProcedura.c_str());
+
+	//ricevi chiave per decifrare la chiave privata di RP
+	string derivedKey;
+	receiveString_SSL(ssl,derivedKey);
+
+
+	uint numSchedeDaScrutinare = 0; //
+	uv->numSchedeCompilate(idProcedura);
+	//invia numeroSchede da scrutinare
+	sendString_SSL(ssl,to_string(numSchedeDaScrutinare));
+
+	//chiamo la funzione urna per effettuare lo scrutinio
+	uv->doScrutinio(idProcedura,derivedKey);
 
 	return;
 
@@ -655,7 +671,7 @@ void SSLServer::serviceTryVoteElettore(SSL * ssl) {
 	//prova a bloccare l'elettore per permettere la votazione esclusiva e univoca
 	uint ruolo;
 	uint esito = uv->tryVote(matricola,ruolo);
-
+	cout << "esito lock della matricola " << matricola <<": " << esito;
 	//restituisci alla postazione seggio l'esito dell'operazione
 	sendString_SSL(ssl,std::to_string(esito));
 
@@ -710,6 +726,9 @@ void SSLServer::serviceInfoMatricola(SSL* ssl) {
 
 }
 void SSLServer::serviceSetMatricolaVoted(SSL* ssl) {
+	//seggioChiamante->mutex_stdout.lock();
+		cout << "ServizioUrnaThread: service started: " << servizi::setMatricolaVoted << endl;
+		//seggioChiamante->mutex_stdout.unlock();
 
 	//ricevi matricola
 	string matr;
@@ -778,10 +797,14 @@ int SSLServer::receiveString_SSL(SSL* ssl, string &s){
 	return bytes; //bytes read for the string received
 }
 void SSLServer::sendString_SSL(SSL* ssl, string s) {
+	//calcolo lunghezza stringa da inviare
 	int length = strlen(s.c_str());
 	string length_str = std::to_string(length);
 	const char *num_bytes = length_str.c_str();
+	//invio la lunghezza
 	SSL_write(ssl, num_bytes, strlen(num_bytes));
+
+	//trasmetto la stringa
 	SSL_write(ssl, s.c_str(), length);
 }
 

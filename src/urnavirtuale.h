@@ -28,6 +28,8 @@
 #include "cryptopp/files.h"
 #include "cryptopp/pssr.h"
 #include <cryptopp/pwdbased.h>
+#include <cryptopp/aes.h>
+#include <cryptopp/modes.h>
 
 using namespace CryptoPP;
 using namespace tinyxml2;
@@ -40,7 +42,7 @@ public:
 	uint getIdProceduraCorrente();
 	uint getNumeroSchede(uint idProcedura);
 	bool checkScrutinioEseguito(uint idProcedura);
-	bool decifravoti_RP(uint idProcedura, CryptoPP::RSA::PrivateKey chiavePrivataRP);
+
 	string getStringProcedure_formattedXML_byUsernameRP(string usernameRP);
 	uint tryVote(uint matricola,uint &ruolo);
 	vector <string> getSchede();
@@ -57,6 +59,8 @@ public:
 	string hashPassword( string plainPass, string salt);
 	string procedureVotoRPtoXML(vector <ProceduraVoto> pvs);
 	uint idRPByUsername(string username);
+	bool doScrutinio(uint idProcedura, string derivedKey);
+	uint numSchedeCompilate(uint idProcedura);
 
 	const ProceduraVoto& getProceduraCorrente() const {
 		return proceduraCorrente;
@@ -93,6 +97,10 @@ private:
 	CryptoPP::RSA::PrivateKey extractPrivatePemKey(const char * client_key_pem);
 	void getPublicKeyFromCert(CryptoPP::BufferedTransformation & certin,
 			CryptoPP::BufferedTransformation & keyout);
+	bool decifravoti_RP(uint idProcedura, CryptoPP::RSA::PrivateKey chiavePrivataRP);
+	string recoverPrivateKeyRP(string encryptedPrivateKeyRP,string derivedKey);
+
+	string decryptStdString(string ciphertext, SecByteBlock key, byte* iv);
 };
 
 #endif /* URNAVIRTUALE_H_ */

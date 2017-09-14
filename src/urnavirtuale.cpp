@@ -39,7 +39,7 @@ uint UrnaVirtuale::getNumeroSchede(uint idProceduraCorrente){
 
 vector<string> UrnaVirtuale::getSchede() {
 	uint idProcedura = proceduraCorrente.getIdProceduraVoto();
-	cout << "richiedo al model le schede per la procedura: " << idProcedura << endl;
+	//cout << "richiedo al model le schede per la procedura: " << idProcedura << endl;
 	return model->getSchedeVoto(idProcedura);
 }
 
@@ -102,6 +102,10 @@ bool UrnaVirtuale::storePacchettoVoto(string idSchedaCompilata,
 	uint idProcedura = this->getIdProceduraCorrente();
 	string dataToStore = idSchedaCompilata + schedaCifrata + kc + ivc + std::to_string(nonce) + std::to_string(idProcedura);
 	//TODO firmare pacchetto di voto
+	cout << idSchedaCompilata << endl;
+	cout << schedaCifrata << endl;
+	cout << kc << endl;
+	cout << ivc << endl;
 
 	string encodedSignature = signString_U(dataToStore);
 
@@ -125,6 +129,8 @@ string UrnaVirtuale::signString_U(string data) {
 	ss.MessageEnd();
 	cout << "PrivateKey:" << s << endl;
 
+	cout << "Data to sign: " << data << endl;
+
 	string signature;
 	string encodedSignature;
 	////////////////////////////////////////////////
@@ -147,41 +153,41 @@ string UrnaVirtuale::signString_U(string data) {
 		cout << "Signature encoded: " << encodedSignature << endl;
 
 		////------ verifica signature
-		FileSource certin(
-				"/home/giuseppe/myCA/intermediate/certs/localhost.cert.der", true,
-				NULL, true);
-		FileSink keyout("localhost-public.key", true);
-
-		getPublicKeyFromCert(certin, keyout);
-
-		//non dimenticare di chiudere il buffer!!!!!!!
-		keyout.MessageEnd();
-
-		RSA::PublicKey publicKey;
-		LoadPublicKey("localhost-public.key", publicKey);
-
-
-		ByteQueue queue;
-		publicKey.Save(queue);
-		HexEncoder encoder;
-		queue.CopyTo(encoder);
-		encoder.MessageEnd();
-
-		string s;
-		StringSink ss(s);
-		encoder.CopyTo(ss);
-		ss.MessageEnd();
-		cout << "PublicKey: " << s << endl;
-		////////////////////////////////////////////////
-		// Verify and Recover
-		RSASS<PSS, SHA256>::Verifier verifier(publicKey);
-		cout << data + signature << endl;
-		StringSource(data + signature, true,
-				new SignatureVerificationFilter(verifier, NULL,
-						SignatureVerificationFilter::THROW_EXCEPTION) // SignatureVerificationFilter
-		);// StringSource
-
-		cout << "Verified signature on message" << endl;
+//		FileSource certin(
+//				"/home/giuseppe/myCA/intermediate/certs/localhost.cert.der", true,
+//				NULL, true);
+//		FileSink keyout("localhost-public.key", true);
+//
+//		getPublicKeyFromCert(certin, keyout);
+//
+//		//non dimenticare di chiudere il buffer!!!!!!!
+//		keyout.MessageEnd();
+//
+//		RSA::PublicKey publicKey;
+//		LoadPublicKey("localhost-public.key", publicKey);
+//
+//
+//		ByteQueue queue;
+//		publicKey.Save(queue);
+//		HexEncoder encoder;
+//		queue.CopyTo(encoder);
+//		encoder.MessageEnd();
+//
+//		string s;
+//		StringSink ss(s);
+//		encoder.CopyTo(ss);
+//		ss.MessageEnd();
+//		cout << "PublicKey: " << s << endl;
+//		////////////////////////////////////////////////
+//		// Verify and Recover
+//		RSASS<PSS, SHA256>::Verifier verifier(publicKey);
+//		cout << data + signature << endl;
+//		StringSource(data + signature, true,
+//				new SignatureVerificationFilter(verifier, NULL,
+//						SignatureVerificationFilter::THROW_EXCEPTION) // SignatureVerificationFilter
+//		);// StringSource
+//
+//		cout << "Verified signature on message" << endl;
 
 	} // try
 
@@ -518,6 +524,18 @@ uint UrnaVirtuale::idRPByUsername(string username) {
 	return model->getIdRPByUsername(username);
 }
 
+bool UrnaVirtuale::doScrutinio(uint idProcedura, string derivedKey) {
+	uint idRP = model->getIdRPByProcedura(idProcedura);
+
+	//ottengo la chiave privata di RP dal database e la decifro con la chiave simmetrica ricevuta dal responsabile di procedimento che è loggato
+	string encryptedPrivateKeyRP = model->getEncryptedPR_RP(idRP);
+
+	//decifra con algoritmo simmetrico la chiave privata di RP
+	string privateKeyRP = recoverPrivateKeyRP(encryptedPrivateKeyRP,derivedKey);
+
+
+}
+
 void UrnaVirtuale::getPublicKeyFromCert(CryptoPP::BufferedTransformation & certin,
 		CryptoPP::BufferedTransformation & keyout) {
 	/**
@@ -617,4 +635,62 @@ string UrnaVirtuale::hashPassword( string plainPass, string salt){
 
 }
 
+string UrnaVirtuale::recoverPrivateKeyRP(string encryptedPrivateKeyRP, string derivedKeyEncoded) {
 
+	//riceve come parametri la chiave privata di RP cifrata simmetricamente, codificata in esadecimale
+	//e la chiave simmetrica che serve per decifrarla
+
+	//decodifica chiave derivata
+	string derivedKeyDecoded;
+	StringSource(derivedKeyEncoded,true,
+			new HexDecoder(
+					new StringSink(derivedKeyDecoded)
+			) // HexDecoder
+	); // StringSource
+
+	SecByteBlock key(reinterpret_cast<const byte*>(derivedKeyDecoded.data()), derivedKeyDecoded.size());
+
+
+	//Questo IV deve essere lo stesso della fase di cifratura
+	byte iv[AES::MAX_KEYLENGTH];
+	memset(iv, 0x00,AES::MAX_KEYLENGTH);
+
+	string encryptedPrivateKeyDecoded;
+	StringSource(encryptedPrivateKeyDecoded,true,
+			new HexDecoder(
+					new StringSink(encryptedPrivateKeyRP)
+			) // HexDecoder
+	); // StringSource
+
+	cout << "Encrypted PrivateKey decoded: " << encryptedPrivateKeyDecoded  << endl;
+
+	//decifriamo la chiave privata
+	string privateKey = decryptStdString(encryptedPrivateKeyDecoded,key,iv);
+
+	//codifichiamo la chiave priva in esadecimale
+	string encodedPrivateKey;
+	StringSource(encodedPrivateKey,true,
+			new HexEncoder(
+					new StringSink(privateKey)
+			) // HexEncoder
+	); // StringSource
+	return encodedPrivateKey;
+
+}
+
+uint UrnaVirtuale::numSchedeCompilate(uint idProcedura) {
+	return model->getNumberSchedeCompilate(idProcedura);
+}
+
+string UrnaVirtuale::decryptStdString(string ciphertext, SecByteBlock key, byte* iv){
+	string decryptedtext;
+	CryptoPP::AES::Decryption aesDecryption(key,CryptoPP::AES::DEFAULT_KEYLENGTH);
+
+	CryptoPP::CBC_Mode_ExternalCipher::Decryption cbcDecryption(aesDecryption,iv);
+
+	CryptoPP::StreamTransformationFilter stfDecryptor(cbcDecryption,new CryptoPP::StringSink(decryptedtext));
+	stfDecryptor.Put(reinterpret_cast<const unsigned char*>(ciphertext.c_str()),ciphertext.size());
+	stfDecryptor.MessageEnd();
+
+	return decryptedtext;
+}

@@ -48,6 +48,9 @@ public:
 	bool userSaltAndPassword(string userid,string &storedSalt, string &storedHashedPassword);
 	uint getIdRPByUsername(string usernameRP);
 	vector <ProceduraVoto> getProcedureRP(uint idRP);
+	uint getIdRPByProcedura(uint idProcedura);
+	string getEncryptedPR_RP(uint idRP);
+	uint getNumberSchedeCompilate(uint idProcedura);
 	enum statoVoto{
 		non_espresso,
 		votando,
