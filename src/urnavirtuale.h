@@ -50,10 +50,10 @@ public:
 	int verifyMAC(string encodedSessionKey,string plain, string macEncoded);
 	string calcolaMAC(string encodedSessionKey, string plainText);
 	bool checkMACasUniqueID(string macPacchettoVoto);
-	bool storePacchettoVoto(string idSchedaCompilata, string schedaCifrata, string kc, string ivc, uint nonce);
+	//bool storePacchettoVoto(string idSchedaCompilata, string schedaCifrata, string kc, string ivc, uint nonce);
 	uint getIdSessioneCorrenteSuccessiva();
 	bool getInfoMatricola(uint matricola, string &nome, string &cognome, uint &statoVoto);
-	bool updateVoted(uint matricola);
+	//bool updateVoted(uint matricola);
 	bool resetMatricola(uint matricola);
 	bool authenticateRP(string userid, string password);
 	string hashPassword( string plainPass, string salt);
@@ -72,12 +72,12 @@ public:
 	}
 
 	enum esitoLock{
-			locked,
-			alredyLocked,
-			alredyVoted,
-			notExist,
-			errorLocking
-		};
+		locked,
+		alredyLocked,
+		alredyVoted,
+		notExist,
+		errorLocking
+	};
 	enum matricolaExist{
 		exist,
 		not_exist
@@ -86,10 +86,21 @@ public:
 		authenticated,
 		not_authenticated
 	};
+
+	//queste funzioni utilizzano il modelPacchetti
+	void setVoted(uint matricola);
+	void storePacchettiVoto(vector <PacchettoVoto> pacchetti);
+	void savePacchetti();
+	void discardPacchetti();
+
 private:
 	ProceduraVoto proceduraCorrente;
 	SessioneVoto sessioneCorrenteSuccessiva;
-	DataManager *model;
+
+	DataManager *model; //query e update generiche sul DB
+
+	DataManager *modelPacchetti; //riservato per operazioni di storage dei pacchetti di voto
+
 	string signString_U(string data);
 	int verifySignString_U(string data, string encodedSignature);
 	string generaDigestSHA256(string data); //non usato
@@ -101,6 +112,9 @@ private:
 	string recoverPrivateKeyRP(string encryptedPrivateKeyRP,string derivedKey);
 
 	string decryptStdString(string ciphertext, SecByteBlock key, byte* iv);
+
+
+
 };
 
 #endif /* URNAVIRTUALE_H_ */

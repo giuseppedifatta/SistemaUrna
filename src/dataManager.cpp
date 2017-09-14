@@ -6,8 +6,7 @@
  */
 
 #include "dataManager.h"
-#include "proceduravoto.h"
-#include <time.h>
+
 
 DataManager::DataManager() {
 	// TODO Auto-generated constructor stub
@@ -308,6 +307,8 @@ bool DataManager::storeVotoFirmato_U(string uniqueMAC,
 
 		pstmt->executeUpdate();
 		connection->commit();
+
+
 	}catch(SQLException &ex){
 		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
 		stored = false;
@@ -773,4 +774,98 @@ string DataManager::dt_fromDB_toGMAhms(string dateDB) {
 	return dataGMAhms;
 
 
+}
+
+void DataManager::votedNotCommit(uint matricola) {
+	PreparedStatement *pstmt;
+	pstmt = connection->prepareStatement("UPDATE Anagrafica SET statoVoto=? WHERE matricola=?");
+
+	try{
+		pstmt->setUInt(1,statoVoto::espresso);
+		pstmt->setUInt(2,matricola);
+
+		pstmt->executeUpdate();
+		//connection->commit();
+
+	}catch(SQLException &ex){
+		//voted = false;
+		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
+	}
+	pstmt->close();
+	delete pstmt;
+}
+
+void DataManager::storePacchettiSignedNoCommit(
+		vector<PacchettoVoto> pacchetti) {
+
+	for (uint i = 0; i< pacchetti.size(); i++){
+		string uniqueMAC = pacchetti.at(i).getMacId();
+		string encryptedSchedaCompilata = pacchetti.at(i).getSchedaCifrata();
+		string encryptedKey = pacchetti.at(i).getKc();
+		string encryptedIV = pacchetti.at(i).getIvc();
+		uint nonce = pacchetti.at(i).getNonce();
+		string digestFirmato = pacchetti.at(i).getEncodedSign();
+		uint idProceduraCorrente = pacchetti.at(i).getIdProcedura();
+
+		PreparedStatement *pstmt;
+
+		pstmt = connection->prepareStatement("INSERT INTO SchedeCompilate (`idSchedaCompilata`, `idProcedura`,"
+				" `fileVotoCifrato`, `chiavecifrata`, `ivcifrato`, `digestUrna`, `nonce`) VALUES(?,?,?,?,?,?,?)");
+		try{
+			pstmt->setString(1,uniqueMAC);
+			pstmt->setUInt(2,idProceduraCorrente);
+
+			//std::stringstream ss(schedaStr);
+			//        pstmt->setBlob(1,&ss);
+			cout << "toBlob: " << encryptedSchedaCompilata << endl;
+
+			std::istringstream is(encryptedSchedaCompilata);
+
+			pstmt->setBlob(3,&is);
+
+
+
+			std::istringstream key(encryptedKey);
+			pstmt->setBlob(4,&key);
+
+
+			std::istringstream iv(encryptedIV);
+			pstmt->setBlob(5,&iv);
+
+			std::istringstream d(digestFirmato);
+			pstmt->setBlob(6,&d);
+
+			pstmt->setUInt(7,nonce);
+
+			pstmt->executeUpdate();
+			//connection->commit();
+
+
+		}catch(SQLException &ex){
+			cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
+		}
+
+		pstmt->close();
+		delete pstmt;
+	}
+
+}
+
+void DataManager::myCommit() {
+	cout << "commit dei pacchetti e della matricola come votata" << endl;
+	try{
+		connection->commit();
+	}catch(SQLException &ex){
+		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
+	}
+}
+
+void DataManager::myRollback() {
+
+cout << "commit dei pacchetti e della matricola come votata" << endl;
+	try{
+		connection->rollback();
+	}catch(SQLException &ex){
+		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
+	}
 }

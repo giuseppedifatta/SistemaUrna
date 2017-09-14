@@ -18,6 +18,7 @@
 
 
 #include "urnavirtuale.h"
+#include "pacchettoVoto.h"
 
 class UrnaVirtuale;
 
@@ -39,12 +40,12 @@ public:
         //infoProcedura, //seggio
         //infoSessione, //seggio
         risultatiVoto = 4, //seggio
-        storeSchedaCompilata = 5, //postazionevoto
+        storeSchedeCompilate = 5, //postazionevoto
         scrutinio = 6, //responsabile procedimento
         autenticazioneRP = 7,//responsabile procedimento
         tryVoteElettore = 8,
         infoMatricola = 9,
-        setMatricolaVoted = 10,
+        //setMatricolaVoted = 10,
         checkConnection = 11,
         resetMatricolaStatoVoto = 12,
     };
@@ -89,12 +90,12 @@ private:
 	//void serviceInfoProcedura(SSL * ssl);
 	//void serviceInfoSessione(SSL *ssl);
 	void serviceRisultatiVoto(SSL *ssl);
-	void serviceStoreSchedaCompilata(SSL* ssl);
+	void serviceStoreSchedeCompilate(SSL* ssl);
 	void serviceScrutinio(SSL *ssl);
 	void serviceAutenticazioneRP(SSL *ssl);
 	void serviceTryVoteElettore(SSL * ssl);
 	void serviceInfoMatricola(SSL * ssl);
-	void serviceSetMatricolaVoted(SSL *ssl);
+	//void serviceSetMatricolaVoted(SSL *ssl);
 	void serviceCheckConnection(SSL *ssl);
 	void serviceResetMatricolaStatoVoto(SSL * ssl);
 };

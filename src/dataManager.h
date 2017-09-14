@@ -11,6 +11,8 @@
 #include "proceduravoto.h"
 #include "tinyxml2.h"
 
+#include "pacchettoVoto.h"
+
 #include <cppconn/connection.h>
 #include <cppconn/prepared_statement.h>
 #include <cppconn/driver.h>
@@ -20,6 +22,7 @@
 #include <string>
 #include <iostream>
 #include <mutex>
+#include <time.h>
 
 using namespace tinyxml2;
 using namespace sql;
@@ -51,6 +54,13 @@ public:
 	uint getIdRPByProcedura(uint idProcedura);
 	string getEncryptedPR_RP(uint idRP);
 	uint getNumberSchedeCompilate(uint idProcedura);
+
+	//non usare con l'oggetto model di urnavirtuale.h
+	void votedNotCommit(uint matricola);
+	void storePacchettiSignedNoCommit(vector <PacchettoVoto> pacchetti);
+	void myCommit();
+	void myRollback();
+
 	enum statoVoto{
 		non_espresso,
 		votando,

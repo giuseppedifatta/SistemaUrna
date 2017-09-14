@@ -11,6 +11,7 @@
 UrnaVirtuale::UrnaVirtuale() {
 	// TODO Auto-generated constructor stub
 	model = new DataManager();
+	modelPacchetti = new DataManager();
 }
 
 UrnaVirtuale::~UrnaVirtuale() {
@@ -50,7 +51,7 @@ string UrnaVirtuale::getPublicKeyRP(uint idProceduraCorrente){
 
 int UrnaVirtuale::verifyMAC(string encodedSessionKey,string data, string macEncoded){
 	//chiamata all'interno del thread che sta offrendo il servizio
-	int success = 0;
+	int success;
 	cout << "Dati da verificare: " << data << endl;
 	cout << "mac da verificare: " << macEncoded << endl;
 
@@ -97,21 +98,21 @@ bool UrnaVirtuale::checkMACasUniqueID(string macPacchettoVoto) {
 	return model->uniqueIDSchedaCompilata(macPacchettoVoto);
 }
 
-bool UrnaVirtuale::storePacchettoVoto(string idSchedaCompilata,
-		string schedaCifrata, string kc, string ivc, uint nonce) {
-	uint idProcedura = this->getIdProceduraCorrente();
-	string dataToStore = idSchedaCompilata + schedaCifrata + kc + ivc + std::to_string(nonce) + std::to_string(idProcedura);
-	//TODO firmare pacchetto di voto
-	cout << idSchedaCompilata << endl;
-	cout << schedaCifrata << endl;
-	cout << kc << endl;
-	cout << ivc << endl;
-
-	string encodedSignature = signString_U(dataToStore);
-
-	//chiedere al model di memorizzare il pacchetto di voto sul database
-	return model->storeVotoFirmato_U(idSchedaCompilata,schedaCifrata,kc,ivc,nonce, encodedSignature, idProcedura);
-}
+//bool UrnaVirtuale::storePacchettoVoto(string idSchedaCompilata,
+//		string schedaCifrata, string kc, string ivc, uint nonce) {
+//	uint idProcedura = this->getIdProceduraCorrente();
+//	string dataToStore = idSchedaCompilata + schedaCifrata + kc + ivc + std::to_string(nonce) + std::to_string(idProcedura);
+//	//TODO firmare pacchetto di voto
+//	cout << idSchedaCompilata << endl;
+//	cout << schedaCifrata << endl;
+//	cout << kc << endl;
+//	cout << ivc << endl;
+//
+//	string encodedSignature = signString_U(dataToStore);
+//
+//	//chiedere al model di memorizzare il pacchetto di voto sul database
+//	return model->storeVotoFirmato_U(idSchedaCompilata,schedaCifrata,kc,ivc,nonce, encodedSignature, idProcedura);
+//}
 
 string UrnaVirtuale::signString_U(string data) {
 
@@ -153,41 +154,41 @@ string UrnaVirtuale::signString_U(string data) {
 		cout << "Signature encoded: " << encodedSignature << endl;
 
 		////------ verifica signature
-//		FileSource certin(
-//				"/home/giuseppe/myCA/intermediate/certs/localhost.cert.der", true,
-//				NULL, true);
-//		FileSink keyout("localhost-public.key", true);
-//
-//		getPublicKeyFromCert(certin, keyout);
-//
-//		//non dimenticare di chiudere il buffer!!!!!!!
-//		keyout.MessageEnd();
-//
-//		RSA::PublicKey publicKey;
-//		LoadPublicKey("localhost-public.key", publicKey);
-//
-//
-//		ByteQueue queue;
-//		publicKey.Save(queue);
-//		HexEncoder encoder;
-//		queue.CopyTo(encoder);
-//		encoder.MessageEnd();
-//
-//		string s;
-//		StringSink ss(s);
-//		encoder.CopyTo(ss);
-//		ss.MessageEnd();
-//		cout << "PublicKey: " << s << endl;
-//		////////////////////////////////////////////////
-//		// Verify and Recover
-//		RSASS<PSS, SHA256>::Verifier verifier(publicKey);
-//		cout << data + signature << endl;
-//		StringSource(data + signature, true,
-//				new SignatureVerificationFilter(verifier, NULL,
-//						SignatureVerificationFilter::THROW_EXCEPTION) // SignatureVerificationFilter
-//		);// StringSource
-//
-//		cout << "Verified signature on message" << endl;
+		//		FileSource certin(
+		//				"/home/giuseppe/myCA/intermediate/certs/localhost.cert.der", true,
+		//				NULL, true);
+		//		FileSink keyout("localhost-public.key", true);
+		//
+		//		getPublicKeyFromCert(certin, keyout);
+		//
+		//		//non dimenticare di chiudere il buffer!!!!!!!
+		//		keyout.MessageEnd();
+		//
+		//		RSA::PublicKey publicKey;
+		//		LoadPublicKey("localhost-public.key", publicKey);
+		//
+		//
+		//		ByteQueue queue;
+		//		publicKey.Save(queue);
+		//		HexEncoder encoder;
+		//		queue.CopyTo(encoder);
+		//		encoder.MessageEnd();
+		//
+		//		string s;
+		//		StringSink ss(s);
+		//		encoder.CopyTo(ss);
+		//		ss.MessageEnd();
+		//		cout << "PublicKey: " << s << endl;
+		//		////////////////////////////////////////////////
+		//		// Verify and Recover
+		//		RSASS<PSS, SHA256>::Verifier verifier(publicKey);
+		//		cout << data + signature << endl;
+		//		StringSource(data + signature, true,
+		//				new SignatureVerificationFilter(verifier, NULL,
+		//						SignatureVerificationFilter::THROW_EXCEPTION) // SignatureVerificationFilter
+		//		);// StringSource
+		//
+		//		cout << "Verified signature on message" << endl;
 
 	} // try
 
@@ -355,9 +356,9 @@ CryptoPP::RSA::PrivateKey UrnaVirtuale::extractPrivatePemKey(const char * key_pe
 
 		AutoSeededRandomPool prng;
 		bool valid = rsaPrivate.Validate(prng, 3);
-		if (!valid)
+		if (!valid){
 			cerr << "RSA private key is not valid" << endl;
-
+		}
 		cout << "RSA private key is valid" << endl;
 		cout << "N:" << rsaPrivate.GetModulus() << endl;
 		cout << "E:" << rsaPrivate.GetPublicExponent() << endl;
@@ -447,9 +448,9 @@ bool UrnaVirtuale::getInfoMatricola(uint matricola, string& nome,
 	return model->infoVotanteByMatricola(matricola,nome, cognome, statoVoto);
 }
 
-bool UrnaVirtuale::updateVoted(uint matricola) {
-	return model->setVoted(matricola);
-}
+//bool UrnaVirtuale::updateVoted(uint matricola) {
+//	return model->setVoted(matricola);
+//}
 
 bool UrnaVirtuale::resetMatricola(uint matricola) {
 	return model->setNotVoted(matricola);
@@ -693,4 +694,53 @@ string UrnaVirtuale::decryptStdString(string ciphertext, SecByteBlock key, byte*
 	stfDecryptor.MessageEnd();
 
 	return decryptedtext;
+}
+
+void UrnaVirtuale::setVoted(uint matricola) {
+	modelPacchetti->votedNotCommit(matricola);
+}
+
+void UrnaVirtuale::storePacchettiVoto(vector<PacchettoVoto> pacchetti) {
+	for (uint i = 0; i< pacchetti.size(); i++){
+		string idSchedaCompilata ,schedaCifrata, kc, ivc;
+		uint nonce;
+		uint idProcedura = this->getIdProceduraCorrente();
+
+		idSchedaCompilata = pacchetti.at(i).getMacId();
+		schedaCifrata = pacchetti.at(i).getSchedaCifrata();
+		kc = pacchetti.at(i).getKc();
+		ivc = pacchetti.at(i).getIvc();
+		nonce = pacchetti.at(i).getNonce();
+
+
+		string dataToStore = idSchedaCompilata + schedaCifrata + kc + ivc + std::to_string(nonce) + std::to_string(idProcedura);
+		//TODO firmare pacchetto di voto
+		cout << "macId: " << idSchedaCompilata << endl;
+		cout << "schedaCompilata" << schedaCifrata << endl;
+		cout << "kc: " <<kc << endl;
+		cout << "ivc: " <<ivc << endl;
+		cout << "nonce: " << nonce << endl;
+		cout << "idProcedura: " << idProcedura << endl;
+
+		//calcolo la firma
+		string encodedSignature = signString_U(dataToStore);
+
+		//setto i valori mancanti al pacchetto di voto corrente
+		pacchetti.at(i).setIdProcedura(idProcedura);
+		pacchetti.at(i).setEncodedSign(encodedSignature);
+
+	}
+	modelPacchetti->storePacchettiSignedNoCommit(pacchetti);
+
+}
+
+void UrnaVirtuale::savePacchetti()
+{
+	modelPacchetti->myCommit();
+
+}
+
+void UrnaVirtuale::discardPacchetti()
+{
+	modelPacchetti->myRollback();
 }
