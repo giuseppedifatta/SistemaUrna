@@ -166,6 +166,9 @@ string ProceduraVoto::getStatoAsString(ProceduraVoto::statiProcedura stato)
 	case scrutinata:
 		statoAsString = "scrutinata";
 		break;
+	case da_eliminare:
+		statoAsString = "da eliminare";
+		break;
 	case undefined:
 		statoAsString = "undefined";
 		break;
