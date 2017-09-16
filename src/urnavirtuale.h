@@ -12,9 +12,11 @@
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
+#include <mutex>
 #include "tinyxml2.h"
 #include "proceduravoto.h"
 #include "dataManager.h"
+#include "schedacompilata.h"
 
 #include "cryptopp/osrng.h"
 #include "cryptopp/cryptlib.h"
@@ -37,6 +39,9 @@ using namespace std;
 
 class UrnaVirtuale {
 public:
+	//mutex per proteggere le sessioni di ricezione dei pacchetti di voto
+	mutex mutex_ricezione_pacchetti;
+
 	UrnaVirtuale();
 	virtual ~UrnaVirtuale();
 	uint getIdProceduraCorrente();
@@ -105,15 +110,13 @@ private:
 	int verifySignString_U(string data, string encodedSignature);
 	string generaDigestSHA256(string data); //non usato
 	bool checkDigestSHA256(string digest, string dataToCheck); //non usato
-	CryptoPP::RSA::PrivateKey extractPrivatePemKey(const char * client_key_pem);
-	void getPublicKeyFromCert(CryptoPP::BufferedTransformation & certin,
-			CryptoPP::BufferedTransformation & keyout);
-	bool decifravoti_RP(uint idProcedura, CryptoPP::RSA::PrivateKey chiavePrivataRP);
-	string recoverPrivateKeyRP(string encryptedPrivateKeyRP,string derivedKey);
+	bool parseDecryptSchedaCifrata(string schedaCifrata,SecByteBlock k ,SecByteBlock iv, uint nonce,SchedaCompilata* sc);
+	SecByteBlock RSADecrypt(string cipher, CryptoPP::RSA::PrivateKey privateKey);
+	string AESdecryptStdString(string cipher, SecByteBlock key, SecByteBlock iv);
+	string AESdecryptStdString(string cipher, SecByteBlock key, byte* iv);
 
-	string decryptStdString(string ciphertext, SecByteBlock key, byte* iv);
-
-
+	CryptoPP::RSA::PrivateKey extractPrivatePemKey(const char * key_pem_filePath);
+	void getPublicKeyFromCert(CryptoPP::BufferedTransformation & certin,		CryptoPP::BufferedTransformation & keyout);
 
 };
 

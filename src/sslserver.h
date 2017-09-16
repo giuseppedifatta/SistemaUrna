@@ -82,7 +82,7 @@ private:
     void print_cn_name(const char* label, X509_NAME* const name);
 
     //riceve l'id del servizio da avviare
-    void Servlet(int client_sock);
+    void Servlet(int client_sock,string ipClient);
 
     //servizi richiamati dalla funzione Servlet
 	void serviceAttivazionePV(SSL *ssl);
@@ -90,7 +90,7 @@ private:
 	//void serviceInfoProcedura(SSL * ssl);
 	//void serviceInfoSessione(SSL *ssl);
 	void serviceRisultatiVoto(SSL *ssl);
-	void serviceStoreSchedeCompilate(SSL* ssl);
+	void serviceStoreSchedeCompilate(SSL* ssl,string ipClient);
 	void serviceScrutinio(SSL *ssl);
 	void serviceAutenticazioneRP(SSL *ssl);
 	void serviceTryVoteElettore(SSL * ssl);

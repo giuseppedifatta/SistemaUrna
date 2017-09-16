@@ -49,50 +49,6 @@ string UrnaVirtuale::getPublicKeyRP(uint idProceduraCorrente){
 }
 
 
-int UrnaVirtuale::verifyMAC(string encodedSessionKey,string data, string macEncoded){
-	//chiamata all'interno del thread che sta offrendo il servizio
-	int success;
-	cout << "Dati da verificare: " << data << endl;
-	cout << "mac da verificare: " << macEncoded << endl;
-
-	string decodedKey;
-	cout << "Session key: " << encodedSessionKey << endl;
-
-	StringSource (encodedSessionKey,true,
-			new HexDecoder(
-					new StringSink(decodedKey)
-			) // HexDecoder
-	); // StringSource
-
-	SecByteBlock key2(reinterpret_cast<const byte*>(decodedKey.data()), decodedKey.size());
-
-	string macDecoded;
-	StringSource(macEncoded, true,
-			new HexDecoder(
-					new StringSink(macDecoded)
-			) // HexDecoder
-	); // StringSource
-	cout << "hmac decoded: " << macDecoded << endl;
-
-	try
-	{
-		HMAC< SHA256 > hmac(key2, key2.size());
-		const int flags = HashVerificationFilter::THROW_EXCEPTION | HashVerificationFilter::HASH_AT_END;
-
-		StringSource(data + macDecoded, true,
-				new HashVerificationFilter(hmac, NULL, flags)
-		); // StringSource
-
-		cout << "Verified message" << endl;
-		success = 0;
-	}
-	catch(const CryptoPP::Exception& e)
-	{
-		success = 1;
-		cerr << e.what() << endl;
-	}
-	return success;
-}
 
 bool UrnaVirtuale::checkMACasUniqueID(string macPacchettoVoto) {
 	return model->uniqueIDSchedaCompilata(macPacchettoVoto);
@@ -153,65 +109,7 @@ string UrnaVirtuale::signString_U(string data) {
 		);//StringSource
 		cout << "Signature encoded: " << encodedSignature << endl;
 
-		////------ verifica signature
-		//		FileSource certin(
-		//				"/home/giuseppe/myCA/intermediate/certs/localhost.cert.der", true,
-		//				NULL, true);
-		//		FileSink keyout("localhost-public.key", true);
-		//
-		//		getPublicKeyFromCert(certin, keyout);
-		//
-		//		//non dimenticare di chiudere il buffer!!!!!!!
-		//		keyout.MessageEnd();
-		//
-		//		RSA::PublicKey publicKey;
-		//		LoadPublicKey("localhost-public.key", publicKey);
-		//
-		//
-		//		ByteQueue queue;
-		//		publicKey.Save(queue);
-		//		HexEncoder encoder;
-		//		queue.CopyTo(encoder);
-		//		encoder.MessageEnd();
-		//
-		//		string s;
-		//		StringSink ss(s);
-		//		encoder.CopyTo(ss);
-		//		ss.MessageEnd();
-		//		cout << "PublicKey: " << s << endl;
-		//		////////////////////////////////////////////////
-		//		// Verify and Recover
-		//		RSASS<PSS, SHA256>::Verifier verifier(publicKey);
-		//		cout << data + signature << endl;
-		//		StringSource(data + signature, true,
-		//				new SignatureVerificationFilter(verifier, NULL,
-		//						SignatureVerificationFilter::THROW_EXCEPTION) // SignatureVerificationFilter
-		//		);// StringSource
-		//
-		//		cout << "Verified signature on message" << endl;
-
-	} // try
-
-	catch (CryptoPP::Exception& e) {
-		cerr << "Error: " << e.what() << endl;
-	}
-
-	return encodedSignature;
-}
-
-int UrnaVirtuale::verifySignString_U(string data, string encodedSignature) {
-	int success = 1;
-	string signature;
-	StringSource(signature,true,
-			new HexEncoder(
-					new StringSink(encodedSignature)
-			)//HexEncoder
-	);//StringSource
-	cout << "Signature encoded: " << encodedSignature << endl;
-	cout << "Signature decoded: " << signature << endl;
-
-	try{
-		////------ verifica signature
+		//------ verifica signature
 		FileSource certin(
 				"/home/giuseppe/myCA/intermediate/certs/localhost.cert.der", true,
 				NULL, true);
@@ -247,7 +145,65 @@ int UrnaVirtuale::verifySignString_U(string data, string encodedSignature) {
 		);// StringSource
 
 		cout << "Verified signature on message" << endl;
-		success = 0;
+
+	} // try
+
+	catch (CryptoPP::Exception& e) {
+		cerr << "Error: " << e.what() << endl;
+	}
+
+	return encodedSignature;
+}
+
+int UrnaVirtuale::verifySignString_U(string data, string encodedSignature) {
+	int success = 1; //non verificato
+	string signature;
+	StringSource(encodedSignature,true,
+			new HexDecoder(
+					new StringSink(signature)
+			)//HexDecoder
+	);//StringSource
+	cout << "Signature encoded: " << encodedSignature << endl;
+	cout << "Signature decoded: " << signature << endl;
+
+	try{
+		////------ verifica signature
+		FileSource certin(
+				"/home/giuseppe/myCA/intermediate/certs/localhost.cert.der", true,
+				NULL, true);
+		FileSink keyout("localhost-public.key", true);
+
+		getPublicKeyFromCert(certin, keyout);
+
+		//non dimenticare di chiudere il buffer!!!!!!!
+		keyout.MessageEnd();
+
+		RSA::PublicKey publicKey;
+		LoadPublicKey("localhost-public.key", publicKey);
+
+
+		ByteQueue queue;
+		publicKey.Save(queue);
+		HexEncoder encoder;
+		queue.CopyTo(encoder);
+		encoder.MessageEnd();
+
+		string s;
+		StringSink ss(s);
+		encoder.CopyTo(ss);
+		ss.MessageEnd();
+		cout << "PublicKey encoded: " << s << endl;
+		////////////////////////////////////////////////
+		// Verify and Recover
+		RSASS<PSS, SHA256>::Verifier verifier(publicKey);
+		cout << "Data to sign|signature: " << data + signature << endl;
+		StringSource(data + signature, true,
+				new SignatureVerificationFilter(verifier, NULL,
+						SignatureVerificationFilter::THROW_EXCEPTION) // SignatureVerificationFilter
+		);// StringSource
+
+		cout << "Verified signature on message" << endl;
+		success = 0; //verificato
 	} // try
 
 	catch (CryptoPP::Exception& e) {
@@ -294,7 +250,7 @@ bool UrnaVirtuale::checkDigestSHA256(string digest, string dataToCheck) {
 }
 
 
-CryptoPP::RSA::PrivateKey UrnaVirtuale::extractPrivatePemKey(const char * key_pem) {
+CryptoPP::RSA::PrivateKey UrnaVirtuale::extractPrivatePemKey(const char * key_pem_filePath) {
 	/*	string RSA_PRIV_KEY = "-----BEGIN RSA PRIVATE KEY-----\n"
 	 "MIIBOgIBAAJBAK8Q+ToR4tWGshaKYRHKJ3ZmMUF6jjwCS/u1A8v1tFbQiVpBlxYB\n"
 	 "paNcT2ENEXBGdmWqr8VwSl0NBIKyq4p0rhsCAQMCQHS1+3wL7I5ZzA8G62Exb6RE\n"
@@ -309,7 +265,7 @@ CryptoPP::RSA::PrivateKey UrnaVirtuale::extractPrivatePemKey(const char * key_pe
 	static string FOOTER = "-----END RSA PRIVATE KEY-----";
 	//
 
-	std::ifstream ifs(key_pem);
+	std::ifstream ifs(key_pem_filePath);
 	std::string content((std::istreambuf_iterator<char>(ifs)),
 			(std::istreambuf_iterator<char>()));
 
@@ -371,11 +327,11 @@ CryptoPP::RSA::PrivateKey UrnaVirtuale::extractPrivatePemKey(const char * key_pe
 	return rsaPrivate;
 }
 
-string UrnaVirtuale::calcolaMAC(string encodedSessionKey, string plainText) {
-	//chiamata all'interno del thread che sta offrendo il servizio
+
+string UrnaVirtuale::calcolaMAC(string encodedSessionKey, string plain){
+
 
 	//"11A47EC4465DD95FCD393075E7D3C4EB";
-
 	cout << "Session key: " << encodedSessionKey << endl;
 	string decodedKey;
 	StringSource (encodedSessionKey,true,
@@ -390,7 +346,7 @@ string UrnaVirtuale::calcolaMAC(string encodedSessionKey, string plainText) {
 	string macCalculated, encoded;
 
 	/*********************************\
-	    \*********************************/
+    \*********************************/
 
 	// Pretty print key
 	encoded.clear();
@@ -401,16 +357,16 @@ string UrnaVirtuale::calcolaMAC(string encodedSessionKey, string plainText) {
 	); // StringSource
 	cout << "key encoded: " << encoded << endl;
 
-	cout << "plain text: " << plainText << endl;
+	cout << "plain text: " << plain << endl;
 
 	/*********************************\
-	    \*********************************/
+    \*********************************/
 
 	try
 	{
 		CryptoPP::HMAC< CryptoPP::SHA256 > hmac(key, key.size());
 
-		StringSource(plainText, true,
+		StringSource(plain, true,
 				new HashFilter(hmac,
 						new StringSink(macCalculated)
 				) // HashFilter
@@ -418,14 +374,13 @@ string UrnaVirtuale::calcolaMAC(string encodedSessionKey, string plainText) {
 	}
 	catch(const CryptoPP::Exception& e)
 	{
-		cerr << e.what() << endl;
-
+		cerr << "Caught exception :" << e.what() << endl;
 	}
 
 	/*********************************\
-	    \*********************************/
+    \*********************************/
 
-	// Pretty print MAC
+	//	// Pretty print MAC
 	string macEncoded;
 	StringSource(macCalculated, true,
 			new HexEncoder(
@@ -434,11 +389,50 @@ string UrnaVirtuale::calcolaMAC(string encodedSessionKey, string plainText) {
 	); // StringSource
 	cout << "hmac encoded: " << macEncoded << endl;
 
-	verifyMAC(encodedSessionKey,plainText, macEncoded);
-
 	return macEncoded;
 }
 
+int UrnaVirtuale::verifyMAC(string encodedSessionKey,string data, string macEncoded){
+	//restituisce 0 in caso di verifica positiva
+	//restituisce 1 in caso di verifica negativa
+	string decodedKey;
+	int success = 1;
+	cout << "Session key: " << encodedSessionKey << endl;
+
+	StringSource (encodedSessionKey,true,
+			new HexDecoder(
+					new StringSink(decodedKey)
+			) // HexDecoder
+	); // StringSource
+
+	SecByteBlock key(reinterpret_cast<const byte*>(decodedKey.data()), decodedKey.size());
+
+	string macDecoded;
+	StringSource(macEncoded, true,
+			new HexDecoder(
+					new StringSink(macDecoded)
+			) // HexEncoder
+	); // StringSource
+	cout << "hmac decoded: " << macDecoded << endl;
+
+	try
+	{
+		CryptoPP::HMAC< CryptoPP::SHA256 > hmac(key, key.size());
+		const int flags = HashVerificationFilter::THROW_EXCEPTION | HashVerificationFilter::HASH_AT_END;
+
+
+		StringSource(data + macDecoded, true,
+				new HashVerificationFilter(hmac, NULL, flags)
+		); // StringSource
+		success = 0;
+		cout << "Verified message" << endl;
+	}
+	catch(const CryptoPP::Exception& e)
+	{
+		cerr << "Caught exception :" << e.what() << endl;
+	}
+	return success;
+}
 bool UrnaVirtuale::checkScrutinioEseguito(uint idProcedura) {
 	return model->isScrutinioEseguito(idProcedura);
 }
@@ -528,39 +522,105 @@ uint UrnaVirtuale::idRPByUsername(string username) {
 bool UrnaVirtuale::doScrutinio(uint idProcedura, string derivedKey) {
 	uint idRP = model->getIdRPByProcedura(idProcedura);
 
-	//ottengo la chiave privata di RP dal database e la decifro con la chiave simmetrica ricevuta dal responsabile di procedimento che è loggato
+	//ottengo la chiave privata di RP dal database (codificata esadecimale), la quale
+	//è cifrata con la chiave simmetrica derivata dalla password di RP
 	string encryptedPrivateKeyRP = model->getEncryptedPR_RP(idRP);
 	cout << "chiave privata RP cifrata: " << encryptedPrivateKeyRP << endl;
-	//decifra con algoritmo simmetrico la chiave privata di RP
-	string privateKeyRP = recoverPrivateKeyRP(encryptedPrivateKeyRP,derivedKey);
-	cout << "chiave privata RP decifrata: " << privateKeyRP<< endl;
+
+	//iv di decifratura, uguale all'iv di cifratura sul sistema Tecnico!!
+	byte iv[AES::BLOCKSIZE];
+	memset(iv, 0x01,AES::BLOCKSIZE);
+	std::string s_iv( reinterpret_cast< char const* >(iv) ) ;
+
+	//derivedKey ricevuta dall'RP che ha richiesto lo scrutinio
+	string decodedDerivedKey;
+	StringSource(derivedKey,true,
+			new HexDecoder(
+					new StringSink(decodedDerivedKey)
+			)
+	);
+	//mettiamola nella struttura SecByteBlock
+	SecByteBlock key(reinterpret_cast<const byte*>(decodedDerivedKey.data()),decodedDerivedKey.size());
+
+	string decodedPrivateKeyRP = AESdecryptStdString(encryptedPrivateKeyRP,key,iv);
+	cout << "chiave privata RP decifrata: " << decodedPrivateKeyRP<< endl;
+
+	;
+
+	StringSource ss(decodedPrivateKeyRP,true /*pumpAll*/);
+	RSA::PrivateKey privateKeyRP;
+	privateKeyRP.Load(ss);
 
 	//ottenere i pacchetti voto per la procedura
-	vector <PacchettoVoto> pv = model->getPacchettiVoto(idProcedura);
-
+	vector <PacchettoVoto> pacchetti = model->getPacchettiVoto(idProcedura);
+	cout << "Ottenuti dal DB i pacchetti per la procedura con id: " << idProcedura << endl;
 
 	//per ogni pacchetto
-	for(uint i=0; i< pv.size();i++){
-	//1.verificare la firma, quindi accettare o rifiutare un pacchetto
+	int pacchettiVerificati = 0;
+	int pacchettiRifiutati = 0;
+	int pacchettiEstratti = pacchetti.size();
 
-	//se non è stato rifiutare
-	//2. decifrare chiave simmetrica e iv del pacchetto di voto con la chiave privata di RP
+	for(uint i=0; i< pacchetti.size();i++){
+		//1.verificare la firma, quindi accettare o rifiutare un pacchetto
+		string idSchedaCompilata ,schedaCifrata, kc, ivc, encodedSignature;
+		uint nonce;
+		uint idProcedura = pacchetti.at(i).getIdProcedura();
 
-	//3. usare chiave simmetrica e iv per decifrare la scheda cifrata, così da riottenere i campi in chiaro
+		idSchedaCompilata = pacchetti.at(i).getMacId();
+		schedaCifrata = pacchetti.at(i).getSchedaCifrata();
+		kc = pacchetti.at(i).getKc();
+		ivc = pacchetti.at(i).getIvc();
+		nonce = pacchetti.at(i).getNonce();
+		encodedSignature = pacchetti.at(i).getEncodedSign();
 
-	//4. confrontare l'Nonce decifrato con quello in chiaro del pacchetto
 
-	//se il confronto tra i due nonce dà esito positivo
-	//5.parsare la scheda estraendo le informazioni di:
-	//5.1seggio di provenienza
-	//5.2id Scheda che permette di risalire a quale votazione fanno riferimento le preferenze contenute nella scheda compilata
-	//5.3numero preferenze, così da verificare che il numero di preferenze presenti non sia superiore a quello massimo,
-	//anche se questa situazione è impedita dai controlli di compilazione del form, presso la postazione in cui i voti sono espressi
-	//5.4 matricole relative alle preferenze
+		string dataToVerify = idSchedaCompilata + schedaCifrata + kc + ivc + std::to_string(nonce) + std::to_string(idProcedura);
+		// visualizzazione dati di cui verificare la firma
+		cout << "macId: " << idSchedaCompilata << endl;
+		cout << "schedaCompilata: " << schedaCifrata << endl;
+		cout << "kc: " <<kc << endl;
+		cout << "ivc: " <<ivc << endl;
+		cout << "nonce: " << nonce << endl;
+		cout << "idProcedura: " << idProcedura << endl;
 
-	//6. conteggiare le preferenze
+		//calcolo la firma
+		int success = verifySignString_U(dataToVerify, encodedSignature);
+
+		//se non è stato rifiutato
+		if(success == 0){
+			pacchettiVerificati++;
+			//2. decifrare chiave simmetrica e iv del pacchetto di voto con la chiave privata di RP, RSA
+			SecByteBlock k = RSADecrypt(kc, privateKeyRP);
+
+			SecByteBlock iv = RSADecrypt(ivc, privateKeyRP);
+
+
+			SchedaCompilata sc;
+			//3. parsing della scheda di voto, viene decifrata e accetta se nonce decifrato è
+			//uguale a quello presente in chiaro nel pacchetto di voto
+			bool accepted = parseDecryptSchedaCifrata(schedaCifrata,k,iv,nonce,&sc);
+
+			if(accepted){
+
+				//4. conteggiare le preferenze
+
+
+			}
+		}
+		else{
+			//TODO verificare la presenza del pacchetto di voto con questo macID  sul database replicato e provare a verificare la firma
+			pacchettiRifiutati++;
+			cerr << "pacchetto "<< i+1 << " non verificato" << endl;
+		}
 	}
 
+	if(pacchettiVerificati != pacchettiEstratti){
+		cerr << "alcuni pacchetti non hanno superato la verifica della firma dell'urna" << endl;
+		return false;
+	}
+	else{
+		cout << pacchettiVerificati << " pacchetti verificati!" << endl;
+	}
 	//7. tutte le schede sono state scrutinate, creare un file xml in cui conservare queste informazioni
 	//preferenze divise per seggio, per idScheda, per lista, per candidato
 	//totale dei voti non distinti per seggio?
@@ -568,8 +628,9 @@ bool UrnaVirtuale::doScrutinio(uint idProcedura, string derivedKey) {
 
 	//8. salvare file xml sul database e aggiornare lo stato della procedura su scrutinata
 
-
+	return true;
 }
+
 
 void UrnaVirtuale::getPublicKeyFromCert(CryptoPP::BufferedTransformation & certin,
 		CryptoPP::BufferedTransformation & keyout) {
@@ -670,65 +731,13 @@ string UrnaVirtuale::hashPassword( string plainPass, string salt){
 
 }
 
-string UrnaVirtuale::recoverPrivateKeyRP(string encryptedPrivateKeyRP, string derivedKeyEncoded) {
 
-	//riceve come parametri la chiave privata di RP cifrata simmetricamente, codificata in esadecimale
-	//e la chiave simmetrica che serve per decifrarla
-
-	//decodifica chiave derivata
-	string derivedKeyDecoded;
-	StringSource(derivedKeyEncoded,true,
-			new HexDecoder(
-					new StringSink(derivedKeyDecoded)
-			) // HexDecoder
-	); // StringSource
-
-	SecByteBlock key(reinterpret_cast<const byte*>(derivedKeyDecoded.data()), derivedKeyDecoded.size());
-
-
-	//Questo IV deve essere lo stesso della fase di cifratura
-	byte iv[AES::MAX_KEYLENGTH];
-	memset(iv, 0x00,AES::MAX_KEYLENGTH);
-
-	string encryptedPrivateKeyDecoded;
-	StringSource(encryptedPrivateKeyRP,true,
-			new HexDecoder(
-					new StringSink(encryptedPrivateKeyDecoded)
-			) // HexDecoder
-	); // StringSource
-
-	cout << "Encrypted PrivateKey decoded: " << encryptedPrivateKeyDecoded  << endl;
-
-	//decifriamo la chiave privata
-	string privateKey = decryptStdString(encryptedPrivateKeyDecoded,key,iv);
-
-	//codifichiamo la chiave priva in esadecimale
-	string encodedPrivateKey;
-	StringSource(privateKey,true,
-			new HexEncoder(
-					new StringSink(encodedPrivateKey)
-			) // HexEncoder
-	); // StringSource
-	return encodedPrivateKey;
-
-}
 
 uint UrnaVirtuale::numSchedeCompilate(uint idProcedura) {
 	return model->getNumberSchedeCompilate(idProcedura);
 }
 
-string UrnaVirtuale::decryptStdString(string ciphertext, SecByteBlock key, byte* iv){
-	string decryptedtext;
-	CryptoPP::AES::Decryption aesDecryption(key,CryptoPP::AES::DEFAULT_KEYLENGTH);
 
-	CryptoPP::CBC_Mode_ExternalCipher::Decryption cbcDecryption(aesDecryption,iv);
-
-	CryptoPP::StreamTransformationFilter stfDecryptor(cbcDecryption,new CryptoPP::StringSink(decryptedtext));
-	stfDecryptor.Put(reinterpret_cast<const unsigned char*>(ciphertext.c_str()),ciphertext.size());
-	stfDecryptor.MessageEnd();
-
-	return decryptedtext;
-}
 
 void UrnaVirtuale::setVoted(uint matricola) {
 	modelPacchetti->votedNotCommit(matricola);
@@ -748,7 +757,7 @@ void UrnaVirtuale::storePacchettiVoto(vector<PacchettoVoto> pacchetti) {
 
 
 		string dataToStore = idSchedaCompilata + schedaCifrata + kc + ivc + std::to_string(nonce) + std::to_string(idProcedura);
-		//TODO firmare pacchetto di voto
+		// visualizzazione dati da firmare
 		cout << "macId: " << idSchedaCompilata << endl;
 		cout << "schedaCompilata" << schedaCifrata << endl;
 		cout << "kc: " <<kc << endl;
@@ -777,4 +786,222 @@ void UrnaVirtuale::savePacchetti()
 void UrnaVirtuale::discardPacchetti()
 {
 	modelPacchetti->myRollback();
+}
+
+SecByteBlock UrnaVirtuale::RSADecrypt(string encodedCipher,CryptoPP::RSA::PrivateKey privateKey) {
+	//funzione per decifrare chiave e iv che servono per decifrare le componenti del pacchetto di voto
+	////////////////////////////////////////////////
+
+	string decodedCipher;
+	StringSource(encodedCipher,true,
+			new HexDecoder(
+					new StringSink(decodedCipher)
+			)//HexDecoder
+	);//StringSource
+
+	cout << "decodedCipher:" << decodedCipher << endl;
+
+	AutoSeededRandomPool rng;
+	string recovered;
+	try{
+		// Decryption
+		RSAES_OAEP_SHA_Decryptor rsaDecryptor( privateKey );
+
+		StringSource( decodedCipher, true,
+				new PK_DecryptorFilter( rng, rsaDecryptor,
+						new StringSink( recovered )
+				) // PK_EncryptorFilter
+		); // StringSource
+		cout << "Recovered: " << recovered << endl;
+
+
+	}
+	catch( CryptoPP::Exception& e )
+	{
+		cerr << "Caught Exception..." << endl;
+		cerr << e.what() << endl;
+	}
+	SecByteBlock recoveredKey(reinterpret_cast<const byte*>(recovered.data()), recovered.size());
+
+	string encoded;
+	StringSource (recovered,true,
+			new HexEncoder(
+					new StringSink(encoded)
+			)
+	);
+	cout << "recovered:" << encoded;
+
+	return recoveredKey;
+}
+
+string UrnaVirtuale::AESdecryptStdString(string encodedCipher, SecByteBlock key, byte* iv){
+	string encoded,recovered;
+	encoded.clear();
+	StringSource(key, key.size(), true,
+			new HexEncoder(
+					new StringSink(encoded)
+			) // HexEncoder
+	); // StringSource
+	cout << "key: " << encoded << endl;
+
+	// Pretty print iv
+	encoded.clear();
+	std::string s_iv( reinterpret_cast< char const* >(iv) ) ;
+	StringSource(s_iv, true,
+			new HexEncoder(
+					new StringSink(encoded)
+			) // HexEncoder
+	); // StringSource
+	cout << "iv: " << encoded << endl;
+
+	//decodifichiamo il testo cifrato
+	string decodedCipher;
+	StringSource(encodedCipher,true,
+			new HexDecoder(new StringSink(decodedCipher)
+			)//HexDecoder
+	);//StringSource
+
+	try
+	{
+
+		CBC_Mode< AES >::Decryption aesDecryptor;
+		aesDecryptor.SetKeyWithIV(key, key.size(), iv);
+
+		// The StreamTransformationFilter removes
+		//  padding as required.
+		StringSource (decodedCipher, true,
+				new StreamTransformationFilter(aesDecryptor,
+						new StringSink(recovered)
+				) // StreamTransformationFilter
+		); // StringSource
+
+		cout << "recovered text: " << recovered << endl;
+	}
+	catch(const CryptoPP::Exception& e)
+	{
+		cerr << "Caught exception :" << e.what() << endl;
+	}
+	return recovered;
+}
+
+string UrnaVirtuale::AESdecryptStdString(string encodedCipher, SecByteBlock key, SecByteBlock iv){
+	string encoded,recovered;
+	encoded.clear();
+	StringSource(key, key.size(), true,
+			new HexEncoder(
+					new StringSink(encoded)
+			) // HexEncoder
+	); // StringSource
+	cout << "key: " << encoded << endl;
+
+	// Pretty print iv
+	encoded.clear();
+	StringSource(iv,iv.size(),true,
+			new HexEncoder(
+					new StringSink(encoded)
+			) // HexEncoder
+	); // StringSource
+	cout << "iv: " << encoded << endl;
+
+	//decodifichiamo il testo cifrato
+	string decodedCipher;
+	StringSource(encodedCipher,true,
+			new HexDecoder(new StringSink(decodedCipher)
+			)//HexDecoder
+	);//StringSource
+
+	try{
+
+		CBC_Mode< AES >::Decryption aesDecryptor;
+		aesDecryptor.SetKeyWithIV(key, key.size(), iv);
+
+		// The StreamTransformationFilter removes
+		//  padding as required.
+		StringSource (decodedCipher, true,
+				new StreamTransformationFilter(aesDecryptor,
+						new StringSink(recovered)
+				) // StreamTransformationFilter
+		); // StringSource
+
+		cout << "recovered text: " << recovered << endl;
+	}
+	catch(const CryptoPP::Exception& e)
+	{
+		cerr << "Caught exception :" << e.what() << endl;
+	}
+	return recovered;
+}
+
+bool UrnaVirtuale::parseDecryptSchedaCifrata(string schedaCifrata,
+		SecByteBlock k, SecByteBlock iv, uint nonce, SchedaCompilata *sc) {
+
+	//3. usare chiave simmetrica e iv per decifrare l'nonce cifrato presente sulla scheda,
+	//se l'nonce è uguale all'nonce in chiaro del pacchetto, questo viene accettato
+	//si decifrano i campi matricolaPreferenza della scheda cifrata, così da riottenere i campi in chiaro
+	//anche le altre informazioni in chiaro vengono salvate sulla scheda compilata
+	XMLDocument xmlDoc;
+	xmlDoc.Parse(schedaCifrata.c_str());
+	XMLNode *rootNode = xmlDoc.FirstChild();
+
+	XMLText * textNodeNonce = rootNode->FirstChildElement("nonce")->FirstChild()->ToText();
+	string encodedCryptedNonce = textNodeNonce->Value();
+	string nonceDecryptedStr = this->AESdecryptStdString(encodedCryptedNonce,k,iv);
+	uint nonceDecrypted = atoi(nonceDecryptedStr.c_str());
+
+	//se l'noncein chiaro non corrisponde con quello decifrato, si tratta di un pacchetto di voto
+	//soggetto ad attacco di replay, il pacchetto va rifiutato
+	if(nonce != nonceDecrypted){
+		return false;
+	}
+	else{
+		sc->setNonce(nonceDecrypted);
+
+
+
+		XMLText * textNodeIdScheda = rootNode->FirstChildElement("idScheda")->FirstChild()->ToText();
+		uint idScheda = atoi(textNodeIdScheda->Value());
+		sc->setIdScheda(idScheda);
+
+		//XMLText * textNodeIdSeggio = rootNode->FirstChildElement("idSeggio")->FirstChild()->ToText();
+		//uint idSeggio = atoi(textNodeIdSeggio->Value());
+		sc->setIdSeggio(1);
+
+		XMLText * textNodeIdProcedura = rootNode->FirstChildElement("idProcedura")->FirstChild()->ToText();
+		uint idProcedura = atoi(textNodeIdProcedura->Value());
+		sc->setIdProcedura(idProcedura);
+
+		XMLText * textNodeNumeroPreferenze = rootNode->FirstChildElement("numeroPreferenze")->FirstChild()->ToText();
+		uint numeroPreferenze = atoi(textNodeNumeroPreferenze->Value());
+		sc->setNumPreferenze(numeroPreferenze);
+
+		XMLText * textNodeTipologiaElezione = rootNode->FirstChildElement("tipologiaElezione")->FirstChild()->ToText();
+		uint tipologiaElezione = atoi(textNodeTipologiaElezione->Value());
+		sc->setTipologiaElezione(tipologiaElezione);
+
+		XMLNode* preferenzeNode = rootNode->FirstChildElement("preferenze");
+		//primo e ultimo elemento procedura
+		XMLElement * firstMatricolaElement = preferenzeNode->FirstChildElement("matricolaCandidato");
+		XMLElement * lastMatricolaElement = preferenzeNode->LastChildElement("matricolaCandidato");
+
+		XMLElement *matricolaElement = firstMatricolaElement;
+		bool lastMatricola = false;
+		do{
+			XMLText * textNodeMatricola = matricolaElement->FirstChild()->ToText();
+			string encryptedMatricola = textNodeMatricola->Value();
+			string matricolaPreferenza = this->AESdecryptStdString(encryptedMatricola,k,iv);
+			sc->addMatricolaPreferenza(matricolaPreferenza);
+
+			if(matricolaElement == lastMatricolaElement){
+				lastMatricola = true;
+			}
+			else{
+				//accediamo alla successiva procedura
+				matricolaElement = matricolaElement->NextSiblingElement("matricolaCandidato");
+				cout << "ottengo il puntatore alla successiva matricola" << endl;
+			}
+		}while(!lastMatricola);
+		cout << "non ci sono altre matricole preferenza da estrarre" << endl;
+
+	}
+	return true;
 }

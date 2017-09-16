@@ -85,7 +85,7 @@ void SSLServer::startListen() {
 	//inizializza una socket per il client
 	struct sockaddr_in client_addr;
 	uint len = sizeof(client_addr);
-
+	string ipClient;
 	//seggioChiamante->mutex_stdout.lock();
 	cout << "ServerUrna: in ascolto sulla porta " << PORT
 			<< ", attesa connessione da un client...\n";
@@ -99,20 +99,20 @@ void SSLServer::startListen() {
 		perror("Unable to accept");
 		exit(EXIT_FAILURE);
 	} else {
+		char ipAddress[INET_ADDRSTRLEN];
+		inet_ntop(AF_INET, &(client_addr.sin_addr), ipAddress, INET_ADDRSTRLEN);
+		string ipClient = ipAddress;
 		//seggioChiamante->mutex_stdout.lock();
-		cout
-		<< "ServerUrna: Un client ha iniziato la connessione su una socket con fd:"
-		<< client_sock << endl;
+		cout << "ServerUrna: Un client ha iniziato la connessione su una socket con fd:"	<< client_sock << endl;
 		cout << "ServerUrna: Client's Port assegnata: "
-				<< ntohs(client_addr.sin_port) << endl;
-		//seggioChiamante->mutex_stdout.unlock();
+				<< ntohs(client_addr.sin_port)  << "; il client ha indirizzo: " << ipClient<< endl;
 
 	}
 
 	if (!(this->stopServer)) {
 
 		//se non è stata settata l'interruzione del server, lancia il thread per servire la richiesta
-		thread t(&SSLServer::Servlet, this, client_sock);
+		thread t(&SSLServer::Servlet, this, client_sock, ipClient);
 		t.detach();
 		//seggioChiamante->mutex_stdout.lock();
 		cout << "ServerUrna: start a thread..." << endl;
@@ -136,7 +136,7 @@ void SSLServer::startListen() {
 
 }
 
-void SSLServer::Servlet(int client_sock_fd) {/* threadable */
+void SSLServer::Servlet(int client_sock_fd, string ipClient) {/* threadable */
 	//seggioChiamante->mutex_stdout.lock();
 	cout << "ServizioUrnaThread: Servlet: inizio servlet" << endl;
 	//seggioChiamante->mutex_stdout.unlock();
@@ -193,7 +193,7 @@ void SSLServer::Servlet(int client_sock_fd) {/* threadable */
 				this->serviceRisultatiVoto(ssl);
 				break;
 			case servizi::storeSchedeCompilate:
-				this->serviceStoreSchedeCompilate(ssl);
+				this->serviceStoreSchedeCompilate(ssl,ipClient);
 				break;
 			case servizi::scrutinio:
 				this->serviceScrutinio(ssl);
@@ -207,9 +207,9 @@ void SSLServer::Servlet(int client_sock_fd) {/* threadable */
 			case servizi::infoMatricola:
 				this->serviceInfoMatricola(ssl);
 				break;
-//			case servizi::setMatricolaVoted:
-//				this->serviceSetMatricolaVoted(ssl);
-//				break;
+				//			case servizi::setMatricolaVoted:
+				//				this->serviceSetMatricolaVoted(ssl);
+				//				break;
 			case servizi::checkConnection:
 				this->serviceCheckConnection(ssl);
 				break;
@@ -238,12 +238,15 @@ void SSLServer::Servlet(int client_sock_fd) {/* threadable */
 	cout << "ServizioUrnaThread: fine servlet" << endl;
 	//seggioChiamante->mutex_stdout.unlock();
 }
-void SSLServer::serviceStoreSchedeCompilate(SSL * ssl){
+void SSLServer::serviceStoreSchedeCompilate(SSL * ssl, string ipClient){
 	//seggioChiamante->mutex_stdout.lock();
 	cout << "ServizioUrnaThread: service started: "
 			<< servizi::storeSchedeCompilate << endl;
 
+	uv->mutex_ricezione_pacchetti.lock();
+	cout << "postazione con IP: " << ipClient << " ha bloccato il mutex: mutex_ricezione_pacchetti" << endl;
 
+	//------sezione critica
 	//1. ricevi numero di schede da ricevere nella stessa transazione da una certa urna
 	uint numSchede;
 	string numStr;
@@ -300,8 +303,8 @@ void SSLServer::serviceStoreSchedeCompilate(SSL * ssl){
 			string encodedSessionKey = "11A47EC4465DD95FCD393075E7D3C4EB";
 			cout << "Session key: " << encodedSessionKey << endl;
 
-
 			string datiConcatenati = schedaCifrata + kc + ivc + std::to_string(nonce);
+
 
 			//3.2. verifica dell'hmac
 			int verifica = uv->verifyMAC(encodedSessionKey, datiConcatenati, macPacchettoVoto);
@@ -387,6 +390,10 @@ void SSLServer::serviceStoreSchedeCompilate(SSL * ssl){
 		//invio esito negativo
 		sendString_SSL(ssl,to_string(1));
 	}
+
+	//-----fine sezione critica
+	uv->mutex_ricezione_pacchetti.unlock();
+	cout << "postazione con IP: " << ipClient << " ha rilasciato il mutex: mutex_ricezione_pacchetti" << endl;
 	return;
 
 }
@@ -853,7 +860,7 @@ void SSLServer::serviceAutenticazioneRP(SSL * ssl) {
 	if(uv->authenticateRP(username,password)){//verifica credenziali e inivia esito autenticazione
 		if(uv->idRPByUsername(username) == 0){
 			//si è loggato il tecnico o il superuser, ma non sono responsabili di procedimento
-			cerr << "credeniziali appartenenti a tecnico o superuser, rp non autenticato" << endl;
+			cerr << "credenziali appartenenti a tecnico o superuser, rp non autenticato" << endl;
 			autenticato = false;
 			esito = uv->autenticato::not_authenticated;
 		}

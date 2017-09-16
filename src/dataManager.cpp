@@ -122,7 +122,7 @@ ProceduraVoto DataManager::getProceduraCorrente() {
 
 	if(correzioneStato){
 		PreparedStatement *pstmt2;
-
+		cout << "La procedura " << idProceduraVoto <<  " è da aggiornare" << ", nuovo stato: " << statoProceduraAggiornato << endl;
 		pstmt2 = connection->prepareStatement("UPDATE ProcedureVoto SET stato=? WHERE idProceduraVoto=?");
 		try{
 			pstmt2->setUInt(1,statoProceduraAggiornato);
@@ -156,6 +156,59 @@ ProceduraVoto DataManager::getProceduraCorrente() {
 	}
 
 	return pv;
+}
+
+
+vector<ProceduraVoto> DataManager::getProcedureRP(uint idRP) {
+
+	//aggiorno gli stati delle procedure prima di estrarre qualsiasi dato
+	this->updateStatiProcedure();
+
+	vector <ProceduraVoto> pvs;
+	PreparedStatement * pstmt;
+	ResultSet * resultSet;
+	pstmt = connection->prepareStatement
+			("SELECT * FROM ProcedureVoto where idResponsabileProcedimento=?");
+	try{
+		pstmt->setUInt(1,idRP);
+		resultSet = pstmt->executeQuery();
+		while(resultSet->next()){
+			ProceduraVoto pv;
+			uint id = resultSet->getUInt("idProceduraVoto");
+			pv.setIdProceduraVoto(id);
+
+			pv.setDescrizione(resultSet->getString("descrizione"));
+
+			uint stato = resultSet->getUInt("stato");
+			pv.setStato(stato);
+
+
+			string i = resultSet->getString("inizio");
+			string f = resultSet->getString("fine");
+
+			string dt_inizio = dt_fromDB_toGMAhms(i);
+			cout << "inizio procedura :" << dt_inizio << endl;
+			string dt_fine = dt_fromDB_toGMAhms(f);
+			cout << "termine procedura :" << dt_fine << endl;
+
+			pv.setData_ora_inizio(dt_inizio);
+			pv.setData_ora_termine(dt_fine);
+
+
+			cout << "Stiamo aggiungendo la procedura " << id << " al vettore delle procedure di RP: " << idRP << endl;
+
+			pvs.push_back(pv);
+		}
+	}catch(SQLException &ex){
+		cerr << "Exception occurred: " << ex.getErrorCode() <<endl;
+	}
+	pstmt->close();
+	delete pstmt;
+	delete resultSet;
+
+
+
+	return pvs;
 }
 
 bool DataManager::isScrutinioEseguito(uint idProcedura) {
@@ -631,54 +684,6 @@ uint DataManager::getIdRPByUsername(string usernameRP) {
 	return idRP;
 }
 
-vector<ProceduraVoto> DataManager::getProcedureRP(uint idRP) {
-	vector <ProceduraVoto> pvs;
-	PreparedStatement * pstmt;
-	ResultSet * resultSet;
-	pstmt = connection->prepareStatement
-			("SELECT * FROM ProcedureVoto where idResponsabileProcedimento=?");
-	try{
-		pstmt->setUInt(1,idRP);
-		resultSet = pstmt->executeQuery();
-		while(resultSet->next()){
-			ProceduraVoto pv;
-			uint id = resultSet->getUInt("idProceduraVoto");
-			pv.setIdProceduraVoto(id);
-
-			pv.setDescrizione(resultSet->getString("descrizione"));
-
-			uint stato = resultSet->getUInt("stato");
-			pv.setStato(stato);
-
-
-			string i = resultSet->getString("inizio");
-			string f = resultSet->getString("fine");
-
-			string dt_inizio = dt_fromDB_toGMAhms(i);
-			cout << "inizio procedura :" << dt_inizio << endl;
-			string dt_fine = dt_fromDB_toGMAhms(f);
-			cout << "termine procedura :" << dt_fine << endl;
-
-			pv.setData_ora_inizio(dt_inizio);
-			pv.setData_ora_termine(dt_fine);
-
-
-			cout << "Stiamo aggiungendo la procedura " << id << " al vettore delle procedure di RP: " << idRP << endl;
-
-			pvs.push_back(pv);
-		}
-	}catch(SQLException &ex){
-		cerr << "Exception occurred: " << ex.getErrorCode() <<endl;
-	}
-	pstmt->close();
-	delete pstmt;
-	delete resultSet;
-
-
-
-	return pvs;
-}
-
 uint DataManager::getIdRPByProcedura(uint idProcedura) {
 	uint idRP = 0;
 	PreparedStatement * pstmt;
@@ -922,4 +927,182 @@ void DataManager::myRollback() {
 	}catch(SQLException &ex){
 		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
 	}
+}
+
+void DataManager::updateStatiProcedure() {
+	//cout << "aggiorno stati procedure" << endl;
+	PreparedStatement *pstmt;
+	ResultSet * resultSet;
+	string currentTime = currentTimeDbFormatted();
+	cout << "Current time: " << currentTime << endl;
+
+
+	//aggiornamento procedure concluse
+	//ottengo tute le procedure il cui termine di votazione è trascorso
+	pstmt = connection->prepareStatement("SELECT * FROM ProcedureVoto WHERE fine < ?");
+
+	try{
+		pstmt->setString(1,currentTime);
+		resultSet = pstmt->executeQuery();
+
+		while(resultSet->next()){
+			uint stato = resultSet->getUInt("stato");
+			uint conclusa = ProceduraVoto::statiProcedura::conclusa;
+			uint scrutinata = ProceduraVoto::statiProcedura::scrutinata;
+			uint da_eliminare = ProceduraVoto::statiProcedura::da_eliminare;
+			uint idProceduraVoto = resultSet->getUInt("idProceduraVoto");
+
+			uint statoAggiornato;
+			bool daAggiornare = false;
+			if (stato!=conclusa && stato!=scrutinata && stato!=da_eliminare){
+				uint numSchedeRichieste = resultSet->getUInt("numSchede");
+				uint numSchedeInserite = resultSet->getUInt("schedeInserite");
+				daAggiornare = true;
+				if(numSchedeRichieste == numSchedeInserite){
+					statoAggiornato = ProceduraVoto::statiProcedura::conclusa;
+				}
+				else{
+					statoAggiornato = ProceduraVoto::statiProcedura::da_eliminare;
+				}
+			}
+
+			if(daAggiornare){
+				PreparedStatement *pstmt2;
+				cout << "La procedura " << idProceduraVoto <<  " è da aggiornare" << ", nuovo stato: " << statoAggiornato << endl;
+				pstmt2 = connection->prepareStatement("UPDATE ProcedureVoto SET stato=?, ultimaModifica=? WHERE idProceduraVoto=?");
+				try{
+					pstmt2->setUInt(1,statoAggiornato);
+					pstmt2->setDateTime(2,currentTime);
+					pstmt2->setUInt(3,idProceduraVoto);
+					pstmt2->executeUpdate();
+					connection->commit();
+				}catch(SQLException &ex){
+					cerr << "Exception occurred: "<<ex.getErrorCode()<<endl;
+				}
+				pstmt2->close();
+				delete pstmt2;
+
+			}
+
+
+
+
+		}
+	}
+	catch(SQLException &ex){
+		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
+	}
+	pstmt->close();
+	delete pstmt;
+	delete resultSet;
+
+
+
+	//aggiornamento della sola ed eventuale procedura in corso
+	bool correzioneStato = false;
+	bool resetStatoVotanti = false;
+	uint statoProceduraAggiornato;
+	uint statoVotantiResettato;
+	uint idProceduraVoto;
+	PreparedStatement *pstmt3;
+	ResultSet * resultSet3;
+	pstmt3 = connection->prepareStatement("SELECT * FROM ProcedureVoto WHERE inizio <= ? AND fine >= ?");
+	try{
+		pstmt3->setDateTime(1,currentTime);
+		pstmt3->setDateTime(2,currentTime);
+		resultSet3 = pstmt3->executeQuery();
+
+
+		//si suppone che per una certa data, la procedura corrente sia unica
+		if(resultSet3->next()){
+			uint numSchedeVoto = resultSet3->getUInt("numSchede");
+
+			uint schedeInserite = resultSet3->getUInt("schedeInserite");
+
+			uint statoOttenuto = resultSet3->getUInt("stato");
+
+			idProceduraVoto = resultSet3->getUInt("idProceduraVoto");
+
+
+			if(numSchedeVoto==schedeInserite){ //se questa condizione non è vera, la creazione della procedura non è stata completata in tempo
+				cout << "Procedura in corso trovata!" << endl;
+
+				//se il valore dello stato non è aggiornato, bisogna correggerlo
+				if(statoOttenuto!=ProceduraVoto::statiProcedura::in_corso){
+					correzioneStato = true;
+					statoProceduraAggiornato = ProceduraVoto::statiProcedura::in_corso;
+					//bisogna resettare lo stato di voto dei votanti, sta iniziando la votazione di una nuova procedura
+					resetStatoVotanti = true;
+					statoVotantiResettato = statoVoto::non_espresso;
+				}
+
+			}
+			else{
+				//si tratta di una procedura che dovrebbe essere iniziata, ma tutte o alcune schede sono mancanti, non resta che eliminarla
+				cerr << "La creazione della procedura non è stata completata con l'inserimento di tutte le schede necessarie" << endl;
+				correzioneStato = true;
+				statoProceduraAggiornato = ProceduraVoto::statiProcedura::da_eliminare;
+			}
+
+
+
+		}
+	}catch(SQLException &ex){
+		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
+	}
+	pstmt3->close();
+	delete pstmt3;
+	delete resultSet3;
+
+	if(correzioneStato){
+		PreparedStatement *pstmt2;
+		cout << "La procedura " << idProceduraVoto <<  " è da aggiornare" << ", nuovo stato: " << statoProceduraAggiornato << endl;
+		pstmt2 = connection->prepareStatement("UPDATE ProcedureVoto SET stato=?, ultimaModifica=?  WHERE idProceduraVoto=?");
+		try{
+			pstmt2->setUInt(1,statoProceduraAggiornato);
+			pstmt2->setDateTime(2,currentTime);
+			pstmt2->setUInt(3,idProceduraVoto);
+			//pstmt2->setUInt(3, statoVotantiResettato);
+			pstmt2->executeUpdate();
+			connection->commit();
+		}catch(SQLException &ex){
+			cerr << "Exception occurred: "<<ex.getErrorCode()<<endl;
+		}
+		pstmt2->close();
+		delete pstmt2;
+
+	}
+	if(resetStatoVotanti){
+
+		PreparedStatement *pstmt2;
+
+		pstmt2 = connection->prepareStatement("SET SQL_SAFE_UPDATES = 0; SET UPDATE Anagrafica SET statoVoto = ?; SET SQL_SAFE_UPDATES = 1;");
+		try{
+
+			pstmt2->setUInt(1, statoVotantiResettato);
+			pstmt2->executeUpdate();
+			connection->commit();
+		}catch(SQLException &ex){
+			cerr << "Exception occurred: "<<ex.getErrorCode()<<endl;
+		}
+		pstmt2->close();
+		delete pstmt2;
+
+	}
+
+
+}
+
+string DataManager::currentTimeDbFormatted() {
+	time_t now = time(0);
+	string dt  = ctime(&now);
+	tm *ltm = localtime(&now);
+	//	int anno = ltm->tm_year +1900;
+	//	int mese = ltm->tm_mon + 1;
+	//	int day = ltm->tm_mday;
+	char buffer[20];
+	//date formatted for sql db comparing
+	strftime(buffer,20,"%Y-%m-%d %X",ltm); //%F equivalent to %Y-%m-%d 2001-08-23 , %X equivalent to %T 14:55:02
+	string currentTime = buffer;
+	return currentTime;
 }

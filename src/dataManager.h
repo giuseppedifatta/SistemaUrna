@@ -37,6 +37,8 @@ public:
 	DataManager();
 	virtual ~DataManager();
 	ProceduraVoto getProceduraCorrente();
+	vector <ProceduraVoto> getProcedureRP(uint idRP);
+
 	bool isScrutinioEseguito(uint idProcedura);
 	vector <string> getSchedeVoto(uint idProceduraCorrente);
 	SessioneVoto getSessioneCorrenteSuccessiva(uint idProceduraCorrente);
@@ -50,7 +52,7 @@ public:
 	bool setNotVoted(uint matricola);
 	bool userSaltAndPassword(string userid,string &storedSalt, string &storedHashedPassword);
 	uint getIdRPByUsername(string usernameRP);
-	vector <ProceduraVoto> getProcedureRP(uint idRP);
+
 	uint getIdRPByProcedura(uint idProcedura);
 	string getEncryptedPR_RP(uint idRP);
 	uint getNumberSchedeCompilate(uint idProcedura);
@@ -83,6 +85,8 @@ private:
 	mutex mutex_anagrafica;
 	string dt_fromDB_toGMAhms(string dateDBformatted);
 
+	void updateStatiProcedure();
+	string currentTimeDbFormatted();
 };
 
 #endif /* DATAMANAGER_H_ */
