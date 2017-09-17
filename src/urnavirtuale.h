@@ -92,6 +92,10 @@ public:
 		not_authenticated
 	};
 
+	enum compilata{
+		bianca,
+		valida
+	};
 	//queste funzioni utilizzano il modelPacchetti
 	void presetVoted(uint matricola);
 	void storePacchettiVoto(vector <PacchettoVoto> pacchetti);
@@ -112,7 +116,7 @@ private:
 	int verifySignString_U(string data, string encodedSignature);
 	string generaDigestSHA256(string data); //non usato
 	bool checkDigestSHA256(string digest, string dataToCheck); //non usato
-	bool parseDecryptSchedaCifrata(string schedaCifrata,SecByteBlock k ,SecByteBlock iv, uint nonce,SchedaCompilata* sc);
+	bool parseDecryptSchedaCifrata(string schedaCifrata,SecByteBlock k ,SecByteBlock iv, uint nonce,SchedaCompilata* sc,uint &compilata_bianca);
 	SecByteBlock RSADecrypt(string cipher, CryptoPP::RSA::PrivateKey privateKey);
 	string AESdecryptStdString(string cipher, SecByteBlock key, SecByteBlock iv);
 	string AESdecryptStdString(string cipher, SecByteBlock key, byte* iv);

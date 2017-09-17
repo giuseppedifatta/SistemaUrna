@@ -134,7 +134,7 @@ string UrnaVirtuale::signString_U(string data) {
 		StringSink ss(s);
 		encoder.CopyTo(ss);
 		ss.MessageEnd();
-		cout << "PublicKey: " << s << endl;
+		cout << "PublicKey Urna: " << s << endl;
 		////////////////////////////////////////////////
 		// Verify and Recover
 		RSASS<PSS, SHA256>::Verifier verifier(publicKey);
@@ -542,7 +542,7 @@ bool UrnaVirtuale::doScrutinio(uint idProcedura, string derivedKey) {
 	string decodedPrivateKeyRP = AESdecryptStdString(encryptedPrivateKeyRP,key,iv);
 	cout << "chiave privata RP decifrata: " << decodedPrivateKeyRP<< endl;
 
-	;
+
 
 	StringSource ss(decodedPrivateKeyRP,true /*pumpAll*/);
 	RSA::PrivateKey privateKeyRP;
@@ -556,7 +556,9 @@ bool UrnaVirtuale::doScrutinio(uint idProcedura, string derivedKey) {
 	int pacchettiVerificati = 0;
 	int pacchettiRifiutati = 0;
 	int pacchettiEstratti = pacchetti.size();
-
+	cout << "Pacchetti estratti dal database: " << pacchettiEstratti << endl;
+	uint schedeValide = 0;
+	uint schedeBianche = 0;
 	for(uint i=0; i< pacchetti.size();i++){
 		//1.verificare la firma, quindi accettare o rifiutare un pacchetto
 		string idSchedaCompilata ,schedaCifrata, kc, ivc, encodedSignature;
@@ -585,7 +587,9 @@ bool UrnaVirtuale::doScrutinio(uint idProcedura, string derivedKey) {
 
 		//se non è stato rifiutato
 		if(success == 0){
+
 			pacchettiVerificati++;
+			cout << "Pacchetti verificati: " << pacchettiVerificati << endl;
 			//2. decifrare chiave simmetrica e iv del pacchetto di voto con la chiave privata di RP, RSA
 			SecByteBlock k = RSADecrypt(kc, privateKeyRP);
 
@@ -595,8 +599,14 @@ bool UrnaVirtuale::doScrutinio(uint idProcedura, string derivedKey) {
 			SchedaCompilata sc;
 			//3. parsing della scheda di voto, viene decifrata e accetta se nonce decifrato è
 			//uguale a quello presente in chiaro nel pacchetto di voto
-			bool accepted = parseDecryptSchedaCifrata(schedaCifrata,k,iv,nonce,&sc);
-
+			uint compilata_bianca;
+			bool accepted = parseDecryptSchedaCifrata(schedaCifrata,k,iv,nonce,&sc,compilata_bianca);
+			if(compilata_bianca == compilata::bianca){
+				schedeBianche++;
+			}
+			else{
+				schedeValide++;
+			}
 			if(accepted){
 
 				//4. conteggiare le preferenze
@@ -609,7 +619,7 @@ bool UrnaVirtuale::doScrutinio(uint idProcedura, string derivedKey) {
 			pacchettiRifiutati++;
 			cerr << "pacchetto "<< i+1 << " non verificato" << endl;
 		}
-	}
+	}//for
 
 	if(pacchettiVerificati != pacchettiEstratti){
 		cerr << "alcuni pacchetti non hanno superato la verifica della firma dell'urna" << endl;
@@ -618,6 +628,8 @@ bool UrnaVirtuale::doScrutinio(uint idProcedura, string derivedKey) {
 	else{
 		cout << pacchettiVerificati << " pacchetti verificati!" << endl;
 	}
+	cout << "Schede valide: " << schedeValide << endl;
+	cout << "Schede compilate: " << schedeBianche << endl;
 	//7. tutte le schede sono state scrutinate, creare un file xml in cui conservare queste informazioni
 	//preferenze divise per seggio, per idScheda, per lista, per candidato
 	//totale dei voti non distinti per seggio?
@@ -834,7 +846,7 @@ SecByteBlock UrnaVirtuale::RSADecrypt(string encodedCipher,CryptoPP::RSA::Privat
 					new StringSink(encoded)
 			)
 	);
-	cout << "recovered:" << encoded;
+	cout << "recovered encoded:" << encoded << endl;;
 
 	return recoveredKey;
 }
@@ -938,7 +950,7 @@ string UrnaVirtuale::AESdecryptStdString(string encodedCipher, SecByteBlock key,
 }
 
 bool UrnaVirtuale::parseDecryptSchedaCifrata(string schedaCifrata,
-		SecByteBlock k, SecByteBlock iv, uint nonce, SchedaCompilata *sc) {
+		SecByteBlock k, SecByteBlock iv, uint nonce, SchedaCompilata *sc,uint &compilata_bianca) {
 
 	//3. usare chiave simmetrica e iv per decifrare l'nonce cifrato presente sulla scheda,
 	//se l'nonce è uguale all'nonce in chiaro del pacchetto, questo viene accettato
@@ -956,9 +968,12 @@ bool UrnaVirtuale::parseDecryptSchedaCifrata(string schedaCifrata,
 	//se l'noncein chiaro non corrisponde con quello decifrato, si tratta di un pacchetto di voto
 	//soggetto ad attacco di replay, il pacchetto va rifiutato
 	if(nonce != nonceDecrypted){
+		cout << "verifica nonce non superata" << endl;
 		return false;
 	}
 	else{
+
+		cout << "Verifica nonce superata, procedo all'estrazione delle preferenze" << endl;
 		sc->setNonce(nonceDecrypted);
 
 
@@ -984,8 +999,14 @@ bool UrnaVirtuale::parseDecryptSchedaCifrata(string schedaCifrata,
 		sc->setTipologiaElezione(tipologiaElezione);
 
 		XMLNode* preferenzeNode = rootNode->FirstChildElement("preferenze");
-		//primo e ultimo elemento procedura
+		//primo e ultimo elemento matricolaCandidato
 		XMLElement * firstMatricolaElement = preferenzeNode->FirstChildElement("matricolaCandidato");
+		if(firstMatricolaElement==nullptr){
+			cout << "Questa è una scheda bianca" << endl;
+			compilata_bianca = compilata::bianca;
+			return true;
+		}
+		compilata_bianca = compilata::valida;
 		XMLElement * lastMatricolaElement = preferenzeNode->LastChildElement("matricolaCandidato");
 
 		XMLElement *matricolaElement = firstMatricolaElement;
@@ -994,6 +1015,7 @@ bool UrnaVirtuale::parseDecryptSchedaCifrata(string schedaCifrata,
 			XMLText * textNodeMatricola = matricolaElement->FirstChild()->ToText();
 			string encryptedMatricola = textNodeMatricola->Value();
 			string matricolaPreferenza = this->AESdecryptStdString(encryptedMatricola,k,iv);
+			cout << "Matricola preferenza estratta: " << matricolaPreferenza << endl;
 			sc->addMatricolaPreferenza(matricolaPreferenza);
 
 			if(matricolaElement == lastMatricolaElement){
