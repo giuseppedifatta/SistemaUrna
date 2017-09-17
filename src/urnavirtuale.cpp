@@ -84,9 +84,9 @@ string UrnaVirtuale::signString_U(string data) {
 	StringSink ss(s);
 	encoder.CopyTo(ss);
 	ss.MessageEnd();
-	cout << "PrivateKey:" << s << endl;
+	//cout << "PrivateKey:" << s << endl;
 
-	cout << "Data to sign: " << data << endl;
+	//cout << "Data to sign: " << data << endl;
 
 	string signature;
 	string encodedSignature;
@@ -100,14 +100,14 @@ string UrnaVirtuale::signString_U(string data) {
 		StringSource(data, true,
 				new SignerFilter(rng, signer, new StringSink(signature)) // SignerFilter
 		);// StringSource
-		cout << " Signature: " << signature << endl;
+		//cout << " Signature: " << signature << endl;
 
 		StringSource(signature,true,
 				new HexEncoder(
 						new StringSink(encodedSignature)
 				)//HexEncoder
 		);//StringSource
-		cout << "Signature encoded: " << encodedSignature << endl;
+		//cout << "Signature encoded: " << encodedSignature << endl;
 
 		//------ verifica signature
 		FileSource certin(
@@ -138,7 +138,7 @@ string UrnaVirtuale::signString_U(string data) {
 		////////////////////////////////////////////////
 		// Verify and Recover
 		RSASS<PSS, SHA256>::Verifier verifier(publicKey);
-		cout << data + signature << endl;
+		//cout << data + signature << endl;
 		StringSource(data + signature, true,
 				new SignatureVerificationFilter(verifier, NULL,
 						SignatureVerificationFilter::THROW_EXCEPTION) // SignatureVerificationFilter
@@ -397,7 +397,7 @@ int UrnaVirtuale::verifyMAC(string encodedSessionKey,string data, string macEnco
 	//restituisce 1 in caso di verifica negativa
 	string decodedKey;
 	int success = 1;
-	cout << "Session key: " << encodedSessionKey << endl;
+	//cout << "Session key: " << encodedSessionKey << endl;
 
 	StringSource (encodedSessionKey,true,
 			new HexDecoder(
@@ -413,7 +413,7 @@ int UrnaVirtuale::verifyMAC(string encodedSessionKey,string data, string macEnco
 					new StringSink(macDecoded)
 			) // HexEncoder
 	); // StringSource
-	cout << "hmac decoded: " << macDecoded << endl;
+	//cout << "hmac decoded: " << macDecoded << endl;
 
 	try
 	{
@@ -425,7 +425,7 @@ int UrnaVirtuale::verifyMAC(string encodedSessionKey,string data, string macEnco
 				new HashVerificationFilter(hmac, NULL, flags)
 		); // StringSource
 		success = 0;
-		cout << "Verified message" << endl;
+		cout << "VERIFIED MESSAGE" << endl;
 	}
 	catch(const CryptoPP::Exception& e)
 	{

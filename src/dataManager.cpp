@@ -138,10 +138,10 @@ ProceduraVoto DataManager::getProceduraCorrente() {
 
 	}
 	if(resetStatoVotanti){
-
+		cout << "Rilevata nuova procedura, bisogna resettare lo stato dei votanti" << endl;
 		PreparedStatement *pstmt2;
 
-		pstmt2 = connection->prepareStatement("SET SQL_SAFE_UPDATES = 0;SET UPDATE Anagrafica SET statoVoto = ?;SET SQL_SAFE_UPDATES = 1;");
+		pstmt2 = connection->prepareStatement("UPDATE Anagrafica SET statoVoto = ?");
 		try{
 
 			pstmt2->setUInt(1, statoVotantiResettato);
@@ -848,7 +848,7 @@ void DataManager::votedNotCommit(uint matricola) {
 
 	}catch(SQLException &ex){
 		//voted = false;
-		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
+		cerr<<"Exception occurred: "<<ex.getErrorCode()<<endl;
 	}
 	pstmt->close();
 	delete pstmt;
@@ -876,7 +876,7 @@ void DataManager::storePacchettiSignedNoCommit(
 
 			//std::stringstream ss(schedaStr);
 			//        pstmt->setBlob(1,&ss);
-			cout << "toBlob: " << encryptedSchedaCompilata << endl;
+			cout << "Scheda compilata to Blob: " << encryptedSchedaCompilata << endl;
 
 			std::istringstream is(encryptedSchedaCompilata);
 
@@ -915,17 +915,17 @@ void DataManager::myCommit() {
 	try{
 		connection->commit();
 	}catch(SQLException &ex){
-		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
+		cerr<<"Exception occurred: "<<ex.getErrorCode()<<endl;
 	}
 }
 
 void DataManager::myRollback() {
 
-	cout << "commit dei pacchetti e della matricola come votata" << endl;
+	cout << "rollback dei pacchetti e della matricola come votata" << endl;
 	try{
 		connection->rollback();
 	}catch(SQLException &ex){
-		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
+		cerr<<"Exception occurred: "<<ex.getErrorCode()<<endl;
 	}
 }
 
@@ -1075,8 +1075,8 @@ void DataManager::updateStatiProcedure() {
 	if(resetStatoVotanti){
 
 		PreparedStatement *pstmt2;
-
-		pstmt2 = connection->prepareStatement("SET SQL_SAFE_UPDATES = 0; SET UPDATE Anagrafica SET statoVoto = ?; SET SQL_SAFE_UPDATES = 1;");
+		cout << "Rilevata nuova procedura, bisogna resettare lo stato dei votanti" << endl;
+		pstmt2 = connection->prepareStatement("UPDATE Anagrafica SET statoVoto = ?");
 		try{
 
 			pstmt2->setUInt(1, statoVotantiResettato);

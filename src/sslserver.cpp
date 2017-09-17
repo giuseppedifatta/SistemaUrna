@@ -101,7 +101,7 @@ void SSLServer::startListen() {
 	} else {
 		char ipAddress[INET_ADDRSTRLEN];
 		inet_ntop(AF_INET, &(client_addr.sin_addr), ipAddress, INET_ADDRSTRLEN);
-		string ipClient = ipAddress;
+		ipClient = ipAddress;
 		//seggioChiamante->mutex_stdout.lock();
 		cout << "ServerUrna: Un client ha iniziato la connessione su una socket con fd:"	<< client_sock << endl;
 		cout << "ServerUrna: Client's Port assegnata: "
@@ -174,7 +174,7 @@ void SSLServer::Servlet(int client_sock_fd, string ipClient) {/* threadable */
 		if (bytes > 0) {
 			cod_servizio[bytes] = 0;
 			servizio = atoi(cod_servizio);
-
+			cout << "Servizio: " << servizio << endl;
 			switch (servizio) {
 
 			case servizi::attivazionePV:
@@ -260,7 +260,7 @@ void SSLServer::serviceStoreSchedeCompilate(SSL * ssl, string ipClient){
 	//per ogni scheda da ricevere
 	for(uint i = 0 ; i < numSchede; i++){
 		PacchettoVoto pv;
-
+		cout << "Ricevo pacchetto: " << i+1 << endl;
 		//2. ricezione chiavi di cifratura
 		//ricevo kc
 		string kc;
@@ -278,13 +278,13 @@ void SSLServer::serviceStoreSchedeCompilate(SSL * ssl, string ipClient){
 		bool macIdAvailable = false;
 
 		//3. ricevo scheda cifrata
+		uint tentativi;
 		while(!verified || !macIdAvailable){
-
+			tentativi++;
+			cout << "Tentativi ricezione scheda " << i+1 << ": " << tentativi << endl;
 			string schedaCifrata;
 			receiveString_SSL(ssl,schedaCifrata);
 			cout << "scheda cifrata: " << schedaCifrata << endl;
-
-
 
 			//ricevo nonce
 			uint nonce;
@@ -310,32 +310,30 @@ void SSLServer::serviceStoreSchedeCompilate(SSL * ssl, string ipClient){
 			int verifica = uv->verifyMAC(encodedSessionKey, datiConcatenati, macPacchettoVoto);
 
 			if(verifica == 0){
-				verified =true;
+				verified = true;
 			}
-			cout << "ServizioUrnaThread: esito verifica del MAC: " << verifica << endl;
+			cout << "ServizioUrnaThread: esito verifica MAC del pacchetto: " << verifica << endl;
 
 			//3.3 se il pacchetto è valido
 			//controllo che il mac sia adeguato come identificativo del pacchetto di voto sul database
 			if (verified) {
-
-
 				if (uv->checkMACasUniqueID(macPacchettoVoto)) {
+					//comunica esito positivo accettazione pacchetto
+					sendString_SSL(ssl, to_string(0));
 					string idSchedaCompilata = macPacchettoVoto;
 					macIdAvailable = true;
 					pv.setSchedaCifrata(schedaCifrata);
 					pv.setNonce(nonce);
 					pv.setMacId(macPacchettoVoto);
 					pacchetti.push_back(pv);
-					//comunica esito positivo accettazione pacchetto
-					sendString_SSL(ssl, to_string(0));
+
 					cout << "pacchetto correttamente ricevuto, id: " << idSchedaCompilata << endl;
 				}
 				else{
-					macIdAvailable = false;
 					//comunica esito negativo accettazione pacchetto
 					sendString_SSL(ssl, to_string(1));
 					cerr<< "macId non univoco" << endl;
-
+					macIdAvailable = false;
 				}
 			}
 			else{
@@ -352,12 +350,12 @@ void SSLServer::serviceStoreSchedeCompilate(SSL * ssl, string ipClient){
 	string matr;
 	receiveString_SSL(ssl,matr);
 	uint matricola = atoi(matr.c_str());
-
+	cout << "Ha votato la matricola: " << matricola << endl;
 
 	//imposta lo stato della matricola su votato, ma non conferma la modifica
 	uv->setVoted(matricola);
 
-	//memorizzo i pacchetti, pronti al salvataggio
+	//inserisco i pacchetti nel database
 	uv->storePacchettiVoto(pacchetti);
 
 	//comunico che sto memorizzando i pacchetti
@@ -366,6 +364,7 @@ void SSLServer::serviceStoreSchedeCompilate(SSL * ssl, string ipClient){
 	//se ricevo risposta faccio la commit, altrimenti rollback;
 	string s;
 	receiveString_SSL(ssl,s);
+	cout << s << " ricevuto" << endl;
 
 	bool stored = false;
 	if (s == "ACK"){
@@ -383,6 +382,7 @@ void SSLServer::serviceStoreSchedeCompilate(SSL * ssl, string ipClient){
 
 	//invio esito
 	if(stored){
+		//pacchetti memorizzati sull'urna
 		//invio esito positivo
 		sendString_SSL(ssl,to_string(0));
 	}
