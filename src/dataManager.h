@@ -38,6 +38,7 @@ public:
 	virtual ~DataManager();
 	ProceduraVoto getProceduraCorrente();
 	vector <ProceduraVoto> getProcedureRP(uint idRP);
+	mutex mutex_commit; //mutex per operazioni di modifica atomiche sul db
 
 	bool isScrutinioEseguito(uint idProcedura);
 	vector <string> getSchedeVoto(uint idProceduraCorrente);
@@ -48,7 +49,7 @@ public:
 	bool uniqueIDSchedaCompilata(string id);
 	uint tryLockAnagrafica(uint matricola, uint &ruolo);
 	bool infoVotanteByMatricola(uint matricola, string &nome, string &cognome, uint &statoVoto);
-	bool setVoted(uint matricola);
+	//bool setVoted(uint matricola);
 	bool setNotVoted(uint matricola);
 	bool userSaltAndPassword(string userid,string &storedSalt, string &storedHashedPassword);
 	uint getIdRPByUsername(string usernameRP);
@@ -83,6 +84,7 @@ public:
 	};
 private:
 	mutex mutex_anagrafica;
+
 	string dt_fromDB_toGMAhms(string dateDBformatted);
 
 	void updateStatiProcedure();

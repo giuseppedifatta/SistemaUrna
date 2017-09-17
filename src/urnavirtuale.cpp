@@ -11,7 +11,7 @@
 UrnaVirtuale::UrnaVirtuale() {
 	// TODO Auto-generated constructor stub
 	model = new DataManager();
-	modelPacchetti = new DataManager();
+	//modelPacchetti = new DataManager();
 }
 
 UrnaVirtuale::~UrnaVirtuale() {
@@ -442,9 +442,6 @@ bool UrnaVirtuale::getInfoMatricola(uint matricola, string& nome,
 	return model->infoVotanteByMatricola(matricola,nome, cognome, statoVoto);
 }
 
-//bool UrnaVirtuale::updateVoted(uint matricola) {
-//	return model->setVoted(matricola);
-//}
 
 bool UrnaVirtuale::resetMatricola(uint matricola) {
 	return model->setNotVoted(matricola);
@@ -631,6 +628,14 @@ bool UrnaVirtuale::doScrutinio(uint idProcedura, string derivedKey) {
 	return true;
 }
 
+void UrnaVirtuale::lockMutexCommit() {
+	model->mutex_commit.lock();
+}
+
+void UrnaVirtuale::unlockMutexCommit() {
+
+	model->mutex_commit.unlock();
+}
 
 void UrnaVirtuale::getPublicKeyFromCert(CryptoPP::BufferedTransformation & certin,
 		CryptoPP::BufferedTransformation & keyout) {
@@ -739,8 +744,8 @@ uint UrnaVirtuale::numSchedeCompilate(uint idProcedura) {
 
 
 
-void UrnaVirtuale::setVoted(uint matricola) {
-	modelPacchetti->votedNotCommit(matricola);
+void UrnaVirtuale::presetVoted(uint matricola) {
+	model->votedNotCommit(matricola);
 }
 
 void UrnaVirtuale::storePacchettiVoto(vector<PacchettoVoto> pacchetti) {
@@ -773,19 +778,19 @@ void UrnaVirtuale::storePacchettiVoto(vector<PacchettoVoto> pacchetti) {
 		pacchetti.at(i).setEncodedSign(encodedSignature);
 
 	}
-	modelPacchetti->storePacchettiSignedNoCommit(pacchetti);
+	model->storePacchettiSignedNoCommit(pacchetti);
 
 }
 
 void UrnaVirtuale::savePacchetti()
 {
-	modelPacchetti->myCommit();
+	model->myCommit();
 
 }
 
 void UrnaVirtuale::discardPacchetti()
 {
-	modelPacchetti->myRollback();
+	model->myRollback();
 }
 
 SecByteBlock UrnaVirtuale::RSADecrypt(string encodedCipher,CryptoPP::RSA::PrivateKey privateKey) {

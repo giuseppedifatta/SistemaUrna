@@ -9,7 +9,7 @@
 
 
 DataManager::DataManager() {
-	// TODO Auto-generated constructor stub
+
 	try{
 		driver=get_driver_instance();
 		connection=driver->connect("localhost:3306","root", "root");
@@ -121,8 +121,9 @@ ProceduraVoto DataManager::getProceduraCorrente() {
 	delete resultSet;
 
 	if(correzioneStato){
-		PreparedStatement *pstmt2;
 		cout << "La procedura " << idProceduraVoto <<  " è da aggiornare" << ", nuovo stato: " << statoProceduraAggiornato << endl;
+		mutex_commit.lock();
+		PreparedStatement *pstmt2;
 		pstmt2 = connection->prepareStatement("UPDATE ProcedureVoto SET stato=? WHERE idProceduraVoto=?");
 		try{
 			pstmt2->setUInt(1,statoProceduraAggiornato);
@@ -135,12 +136,12 @@ ProceduraVoto DataManager::getProceduraCorrente() {
 		}
 		pstmt2->close();
 		delete pstmt2;
-
+		mutex_commit.unlock();
 	}
 	if(resetStatoVotanti){
 		cout << "Rilevata nuova procedura, bisogna resettare lo stato dei votanti" << endl;
 		PreparedStatement *pstmt2;
-
+		mutex_commit.lock();
 		pstmt2 = connection->prepareStatement("UPDATE Anagrafica SET statoVoto = ?");
 		try{
 
@@ -152,7 +153,7 @@ ProceduraVoto DataManager::getProceduraCorrente() {
 		}
 		pstmt2->close();
 		delete pstmt2;
-
+		mutex_commit.unlock();
 	}
 
 	return pv;
@@ -488,6 +489,7 @@ uint DataManager::tryLockAnagrafica(uint matricola, uint &ruolo) {
 	ResultSet * resultSet;
 	pstmt = connection->prepareStatement("SELECT * FROM Anagrafica WHERE matricola =?");
 
+	mutex_anagrafica.lock();
 	bool lock = false;
 	try{
 		pstmt->setUInt(1,matricola);
@@ -528,13 +530,13 @@ uint DataManager::tryLockAnagrafica(uint matricola, uint &ruolo) {
 	delete pstmt;
 	delete resultSet;
 
-	mutex_anagrafica.lock();
+
 	if (lock){
 		esito = esitoLock::locked;
 		PreparedStatement *pstmt;
 
 		pstmt = connection->prepareStatement("UPDATE Anagrafica SET statoVoto = ? WHERE matricola = ?");
-
+		mutex_commit.lock();
 		try{
 			pstmt->setUInt(1,statoVoto::votando);
 			pstmt->setUInt(2,matricola);
@@ -547,7 +549,9 @@ uint DataManager::tryLockAnagrafica(uint matricola, uint &ruolo) {
 		}
 		pstmt->close();
 		delete pstmt;
+		mutex_commit.unlock();
 	}
+
 
 
 	mutex_anagrafica.unlock();
@@ -588,34 +592,37 @@ bool DataManager::infoVotanteByMatricola(uint matricola, string& nome,
 	return matricolaExist;
 }
 
-bool DataManager::setVoted(uint matricola) {
-	bool voted = true;
-	PreparedStatement *pstmt;
-	pstmt = connection->prepareStatement("UPDATE Anagrafica SET statoVoto=? WHERE matricola=?");
-
-	try{
-		pstmt->setUInt(1,statoVoto::espresso);
-		pstmt->setUInt(2,matricola);
-
-		pstmt->executeUpdate();
-		connection->commit();
-
-	}catch(SQLException &ex){
-		voted = false;
-		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
-	}
-	pstmt->close();
-	delete pstmt;
-
-	return voted;
-
-}
+//bool DataManager::setVoted(uint matricola) {
+//	bool voted = true;
+//	PreparedStatement *pstmt;
+//	pstmt = connection->prepareStatement("UPDATE Anagrafica SET statoVoto=? WHERE matricola=?");
+//
+//	try{
+//		pstmt->setUInt(1,statoVoto::espresso);
+//		pstmt->setUInt(2,matricola);
+//
+//		pstmt->executeUpdate();
+//		connection->commit();
+//
+//	}catch(SQLException &ex){
+//		voted = false;
+//		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
+//	}
+//	pstmt->close();
+//	delete pstmt;
+//
+//	return voted;
+//
+//}
 
 bool DataManager::setNotVoted(uint matricola) {
 	bool unvoted = true;
 	PreparedStatement *pstmt;
 	pstmt = connection->prepareStatement("UPDATE Anagrafica SET statoVoto=? WHERE matricola=?");
 
+	mutex_anagrafica.lock();
+
+	mutex_commit.lock();
 	try{
 		pstmt->setUInt(1,statoVoto::non_espresso);
 		pstmt->setUInt(2,matricola);
@@ -627,6 +634,9 @@ bool DataManager::setNotVoted(uint matricola) {
 		unvoted = false;
 		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
 	}
+	mutex_commit.unlock();
+	mutex_anagrafica.unlock();
+
 	pstmt->close();
 	delete pstmt;
 
@@ -836,6 +846,8 @@ string DataManager::dt_fromDB_toGMAhms(string dateDB) {
 }
 
 void DataManager::votedNotCommit(uint matricola) {
+
+	// se sono qui è stato bloccato il mutex_commit da chi mi ha chiamato
 	PreparedStatement *pstmt;
 	pstmt = connection->prepareStatement("UPDATE Anagrafica SET statoVoto=? WHERE matricola=?");
 
@@ -856,7 +868,7 @@ void DataManager::votedNotCommit(uint matricola) {
 
 void DataManager::storePacchettiSignedNoCommit(
 		vector<PacchettoVoto> pacchetti) {
-
+	// se sono qui è stato bloccato il mutex_commit da chi mi ha chiamato
 	for (uint i = 0; i< pacchetti.size(); i++){
 		string uniqueMAC = pacchetti.at(i).getMacId();
 		string encryptedSchedaCompilata = pacchetti.at(i).getSchedaCifrata();
@@ -911,7 +923,9 @@ void DataManager::storePacchettiSignedNoCommit(
 }
 
 void DataManager::myCommit() {
-	cout << "commit dei pacchetti e della matricola come votata" << endl;
+
+	// se sono qui è stato bloccato il mutex_commit da chi mi ha chiamato
+	cout << "commit: pacchetti voto salvati e stato della matricola (espresso) salvati sul db" << endl;
 	try{
 		connection->commit();
 	}catch(SQLException &ex){
@@ -921,7 +935,9 @@ void DataManager::myCommit() {
 
 void DataManager::myRollback() {
 
-	cout << "rollback dei pacchetti e della matricola come votata" << endl;
+	// se sono qui è stato bloccato il mutex_commit da chi mi ha chiamato
+
+	cout << "rollback: pacchetti voto scartati e modifica stato della matricola su (espresso) non salvato sul db" << endl;
 	try{
 		connection->rollback();
 	}catch(SQLException &ex){
@@ -970,6 +986,7 @@ void DataManager::updateStatiProcedure() {
 				PreparedStatement *pstmt2;
 				cout << "La procedura " << idProceduraVoto <<  " è da aggiornare" << ", nuovo stato: " << statoAggiornato << endl;
 				pstmt2 = connection->prepareStatement("UPDATE ProcedureVoto SET stato=?, ultimaModifica=? WHERE idProceduraVoto=?");
+				mutex_commit.lock();
 				try{
 					pstmt2->setUInt(1,statoAggiornato);
 					pstmt2->setDateTime(2,currentTime);
@@ -979,6 +996,7 @@ void DataManager::updateStatiProcedure() {
 				}catch(SQLException &ex){
 					cerr << "Exception occurred: "<<ex.getErrorCode()<<endl;
 				}
+				mutex_commit.unlock();
 				pstmt2->close();
 				delete pstmt2;
 
@@ -1058,6 +1076,8 @@ void DataManager::updateStatiProcedure() {
 		PreparedStatement *pstmt2;
 		cout << "La procedura " << idProceduraVoto <<  " è da aggiornare" << ", nuovo stato: " << statoProceduraAggiornato << endl;
 		pstmt2 = connection->prepareStatement("UPDATE ProcedureVoto SET stato=?, ultimaModifica=?  WHERE idProceduraVoto=?");
+		mutex_commit.lock();
+		//sezione critica
 		try{
 			pstmt2->setUInt(1,statoProceduraAggiornato);
 			pstmt2->setDateTime(2,currentTime);
@@ -1068,6 +1088,8 @@ void DataManager::updateStatiProcedure() {
 		}catch(SQLException &ex){
 			cerr << "Exception occurred: "<<ex.getErrorCode()<<endl;
 		}
+		//fine sezione critica
+		mutex_commit.unlock();
 		pstmt2->close();
 		delete pstmt2;
 
@@ -1077,6 +1099,7 @@ void DataManager::updateStatiProcedure() {
 		PreparedStatement *pstmt2;
 		cout << "Rilevata nuova procedura, bisogna resettare lo stato dei votanti" << endl;
 		pstmt2 = connection->prepareStatement("UPDATE Anagrafica SET statoVoto = ?");
+		mutex_commit.lock();
 		try{
 
 			pstmt2->setUInt(1, statoVotantiResettato);
@@ -1085,6 +1108,7 @@ void DataManager::updateStatiProcedure() {
 		}catch(SQLException &ex){
 			cerr << "Exception occurred: "<<ex.getErrorCode()<<endl;
 		}
+		mutex_commit.unlock();
 		pstmt2->close();
 		delete pstmt2;
 

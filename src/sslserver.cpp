@@ -252,7 +252,7 @@ void SSLServer::serviceStoreSchedeCompilate(SSL * ssl, string ipClient){
 	string numStr;
 	receiveString_SSL(ssl, numStr);
 	numSchede = atoi(numStr.c_str());
-
+	cout << "numero schede da ricevere: " << numSchede << endl;
 	//salvo i dati in questo vettore prima di memorizzarli sul database, quando avrò ricevuto tutte le schede
 	vector <PacchettoVoto> pacchetti;
 
@@ -278,7 +278,7 @@ void SSLServer::serviceStoreSchedeCompilate(SSL * ssl, string ipClient){
 		bool macIdAvailable = false;
 
 		//3. ricevo scheda cifrata
-		uint tentativi;
+		uint tentativi = 0;
 		while(!verified || !macIdAvailable){
 			tentativi++;
 			cout << "Tentativi ricezione scheda " << i+1 << ": " << tentativi << endl;
@@ -352,8 +352,11 @@ void SSLServer::serviceStoreSchedeCompilate(SSL * ssl, string ipClient){
 	uint matricola = atoi(matr.c_str());
 	cout << "Ha votato la matricola: " << matricola << endl;
 
+	uv->lockMutexCommit();
+	//sezione critica DB
 	//imposta lo stato della matricola su votato, ma non conferma la modifica
-	uv->setVoted(matricola);
+
+	uv->presetVoted(matricola);
 
 	//inserisco i pacchetti nel database
 	uv->storePacchettiVoto(pacchetti);
@@ -378,7 +381,10 @@ void SSLServer::serviceStoreSchedeCompilate(SSL * ssl, string ipClient){
 		uv->discardPacchetti();
 		//lasciamo il valore a false
 	}
+	//fine sezione critica DB
 
+	uv->unlockMutexCommit();
+	cout << "Mutex commit sbloccato." << endl;
 
 	//invio esito
 	if(stored){

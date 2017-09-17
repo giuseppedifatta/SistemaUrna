@@ -93,10 +93,12 @@ public:
 	};
 
 	//queste funzioni utilizzano il modelPacchetti
-	void setVoted(uint matricola);
+	void presetVoted(uint matricola);
 	void storePacchettiVoto(vector <PacchettoVoto> pacchetti);
 	void savePacchetti();
 	void discardPacchetti();
+	void lockMutexCommit();
+	void unlockMutexCommit();
 
 private:
 	ProceduraVoto proceduraCorrente;
@@ -104,7 +106,7 @@ private:
 
 	DataManager *model; //query e update generiche sul DB
 
-	DataManager *modelPacchetti; //riservato per operazioni di storage dei pacchetti di voto
+	//DataManager *modelPacchetti; //riservato per operazioni di storage dei pacchetti di voto
 
 	string signString_U(string data);
 	int verifySignString_U(string data, string encodedSignature);
