@@ -67,6 +67,7 @@ public:
 	uint idRPByUsername(string username);
 	bool doScrutinio(uint idProcedura, string derivedKey);
 	uint numSchedeCompilate(uint idProcedura);
+	void initConnessioneUrnaDB();
 
 	const ProceduraVoto& getProceduraCorrente() const {
 		return proceduraCorrente;
@@ -102,8 +103,6 @@ public:
 	void storePacchettiVoto(vector <PacchettoVoto> pacchetti);
 	void savePacchetti();
 	void discardPacchetti();
-	void lockMutexCommit();
-	void unlockMutexCommit();
 
 private:
 	ProceduraVoto proceduraCorrente;
@@ -111,7 +110,9 @@ private:
 
 	DataManager *model; //query e update generiche sul DB
 
-	//DataManager *modelPacchetti; //riservato per operazioni di storage dei pacchetti di voto
+//	DataManager *modelPacchetti; //riservato per operazioni di storage dei pacchetti di voto
+//
+//	DataManager *modelAnagrafica; //riservato per operazioni di aggiornamento di stato voto delle anagrafiche
 
 	string signString_U(string data);
 	int verifySignString_U(string data, string encodedSignature);

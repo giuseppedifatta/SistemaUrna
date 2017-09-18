@@ -11,6 +11,8 @@
 UrnaVirtuale::UrnaVirtuale() {
 	// TODO Auto-generated constructor stub
 	model = new DataManager();
+//	modelPacchetti = new DataManager();
+//	modelAnagrafica = new DataManager();
 	//modelPacchetti = new DataManager();
 }
 
@@ -20,6 +22,7 @@ UrnaVirtuale::~UrnaVirtuale() {
 
 uint UrnaVirtuale::getIdProceduraCorrente(){
 	//contattare il db e ottenere l'id della procedura corrente
+
 	proceduraCorrente = model->getProceduraCorrente();
 
 	return proceduraCorrente.getIdProceduraVoto();
@@ -668,14 +671,6 @@ bool UrnaVirtuale::doScrutinio(uint idProcedura, string derivedKey) {
 	return true;
 }
 
-void UrnaVirtuale::lockMutexCommit() {
-	model->mutex_commit.lock();
-}
-
-void UrnaVirtuale::unlockMutexCommit() {
-
-	model->mutex_commit.unlock();
-}
 
 void UrnaVirtuale::getPublicKeyFromCert(CryptoPP::BufferedTransformation & certin,
 		CryptoPP::BufferedTransformation & keyout) {
@@ -824,13 +819,13 @@ void UrnaVirtuale::storePacchettiVoto(vector<PacchettoVoto> pacchetti) {
 
 void UrnaVirtuale::savePacchetti()
 {
-	model->myCommit();
+	model->commitUrnaAnagrafica();
 
 }
 
 void UrnaVirtuale::discardPacchetti()
 {
-	model->myRollback();
+	model->rollbackUrnaAnagrafica();
 }
 
 SecByteBlock UrnaVirtuale::RSADecrypt(string encodedCipher,CryptoPP::RSA::PrivateKey privateKey) {
@@ -1110,6 +1105,10 @@ void UrnaVirtuale::addSeggioIfNotExist(vector<RisultatiSeggio>* risultatiSeggi,
 	//aggiungo al vettore delle instanze di risultato dei seggi
 	risultatiSeggi->push_back(rs);
 	cout << "instanza aggiunta al vettore dei risultati di seggio" << endl;
+}
+
+void UrnaVirtuale::initConnessioneUrnaDB() {
+	model->connectToUrnaDB();
 }
 
 vector<SchedaVoto> UrnaVirtuale::parsingSchedeXML(vector<string> &schede){

@@ -12,9 +12,9 @@ DataManager::DataManager() {
 
 	try{
 		driver=get_driver_instance();
-		connection=driver->connect("localhost:3306","root", "root");
-		connection->setAutoCommit(false);
-		connection->setSchema("mydb");
+		//connection=driver->connect("localhost:3306","root", "root");
+		//connection->setAutoCommit(false);
+		//connection->setSchema("mydb");
 	}catch(SQLException &ex){
 		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
 	}
@@ -23,6 +23,8 @@ DataManager::DataManager() {
 }
 
 DataManager::~DataManager() {
+	delete connectionAnagrafica;
+	delete connectionUrna;
 	// TODO Auto-generated destructor stub
 }
 
@@ -46,8 +48,12 @@ ProceduraVoto DataManager::getProceduraCorrente() {
 	strftime(buffer,20,"%Y-%m-%d %X",ltm); //%F equivalent to %Y-%m-%d 2001-08-23 , %X equivalent to %T 14:55:02
 	string currentTime = buffer;
 	cout << "current time: " << currentTime << endl;
+
+	Connection * connection;
+	this->connectToMyDB(connection);
 	PreparedStatement *pstmt;
 	ResultSet * resultSet;
+
 	pstmt = connection->prepareStatement("SELECT * FROM ProcedureVoto WHERE inizio <= ? AND fine >= ?");
 	try{
 		pstmt->setDateTime(1,currentTime);
@@ -122,7 +128,7 @@ ProceduraVoto DataManager::getProceduraCorrente() {
 
 	if(correzioneStato){
 		cout << "La procedura " << idProceduraVoto <<  " è da aggiornare" << ", nuovo stato: " << statoProceduraAggiornato << endl;
-		mutex_commit.lock();
+
 		PreparedStatement *pstmt2;
 		pstmt2 = connection->prepareStatement("UPDATE ProcedureVoto SET stato=? WHERE idProceduraVoto=?");
 		try{
@@ -136,12 +142,12 @@ ProceduraVoto DataManager::getProceduraCorrente() {
 		}
 		pstmt2->close();
 		delete pstmt2;
-		mutex_commit.unlock();
+
 	}
 	if(resetStatoVotanti){
 		cout << "Rilevata nuova procedura, bisogna resettare lo stato dei votanti" << endl;
 		PreparedStatement *pstmt2;
-		mutex_commit.lock();
+
 		pstmt2 = connection->prepareStatement("UPDATE Anagrafica SET statoVoto = ?");
 		try{
 
@@ -153,9 +159,11 @@ ProceduraVoto DataManager::getProceduraCorrente() {
 		}
 		pstmt2->close();
 		delete pstmt2;
-		mutex_commit.unlock();
+
 	}
 
+	connection->close();
+	delete connection;
 	return pv;
 }
 
@@ -166,6 +174,9 @@ vector<ProceduraVoto> DataManager::getProcedureRP(uint idRP) {
 	this->updateStatiProcedure();
 
 	vector <ProceduraVoto> pvs;
+	Connection * connection;
+	this->connectToMyDB(connection);
+
 	PreparedStatement * pstmt;
 	ResultSet * resultSet;
 	pstmt = connection->prepareStatement
@@ -207,12 +218,18 @@ vector<ProceduraVoto> DataManager::getProcedureRP(uint idRP) {
 	delete pstmt;
 	delete resultSet;
 
+	connection->close();
+	delete connection;
 
 
 	return pvs;
 }
 
 bool DataManager::isScrutinioEseguito(uint idProcedura) {
+
+	Connection * connection;
+	this->connectToMyDB(connection);
+
 	PreparedStatement *pstmt;
 	ResultSet * resultSet;
 	bool eseguito = false;
@@ -235,11 +252,17 @@ bool DataManager::isScrutinioEseguito(uint idProcedura) {
 	delete pstmt;
 	delete resultSet;
 
+	connection->close();
+	delete connection;
 	return eseguito;
 }
 
 vector <string> DataManager::getSchedeVoto(uint idProceduraCorrente) {
 	vector <string> schedeVoto;
+	Connection * connection;
+	this->connectToMyDB(connection);
+
+
 	PreparedStatement *pstmt;
 	ResultSet *resultSet;
 	pstmt = connection->prepareStatement("SELECT * FROM SchedeVoto WHERE idProceduraVoto = ?");
@@ -262,7 +285,8 @@ vector <string> DataManager::getSchedeVoto(uint idProceduraCorrente) {
 	pstmt->close();
 	delete pstmt;
 	delete resultSet;
-
+	connection->close();
+	delete connection;
 	return schedeVoto;
 
 }
@@ -272,10 +296,17 @@ vector <string> DataManager::getSchedeVoto(uint idProceduraCorrente) {
 
 string DataManager::getSessionKey_Postazione_Urna(string IP_Postazione,
 		uint idSessioneCorrente) {
+	Connection * connection;
+	this->connectToMyDB(connection);
+	connection->close();
+	delete connection;
 }
 
 
 string DataManager::getPublicKeyRP(uint idProcedura){
+	Connection * connection;
+	this->connectToMyDB(connection);
+
 	PreparedStatement *pstmt;
 	ResultSet * resultSet;
 	uint idRP;
@@ -320,6 +351,9 @@ string DataManager::getPublicKeyRP(uint idProcedura){
 	pstmt->close();
 	delete pstmt;
 	delete resultSet;
+
+	connection->close();
+	delete connection;
 	//restiruisce la chiave publica encoded esadecimale
 	return publicKey;
 }
@@ -393,6 +427,9 @@ SessioneVoto DataManager::getSessioneCorrenteSuccessiva(uint idProceduraCorrente
 	string currentHour = buffer;
 	cout << "current hour: " << currentHour << endl;
 
+	Connection * connection;
+	this->connectToMyDB(connection);
+
 	PreparedStatement * pstmt;
 	ResultSet * resultSet;
 	pstmt = connection->prepareStatement
@@ -454,6 +491,10 @@ SessioneVoto DataManager::getSessioneCorrenteSuccessiva(uint idProceduraCorrente
 	pstmt->close();
 	delete pstmt;
 	delete resultSet;
+
+
+	connection->close();
+	delete connection;
 	return sv;
 }
 
@@ -461,7 +502,7 @@ bool DataManager::uniqueIDSchedaCompilata(string idSchedaCompilata) {
 	bool isUnique = true;
 	PreparedStatement *pstmt;
 	ResultSet * resultSet;
-	pstmt = connection->prepareStatement("SELECT `idSchedaCompilata` FROM `SchedeCompilate` WHERE idSchedaCompilata =?");
+	pstmt = connectionUrna->prepareStatement("SELECT `idSchedaCompilata` FROM `SchedeCompilate` WHERE idSchedaCompilata =?");
 	try{
 		pstmt->setString(1,idSchedaCompilata);
 		resultSet = pstmt->executeQuery();
@@ -484,6 +525,8 @@ bool DataManager::uniqueIDSchedaCompilata(string idSchedaCompilata) {
 
 uint DataManager::tryLockAnagrafica(uint matricola, uint &ruolo) {
 	uint esito;
+	Connection * connection;
+	this->connectToAnagraficaDB(connection);
 
 	PreparedStatement *pstmt;
 	ResultSet * resultSet;
@@ -536,7 +579,7 @@ uint DataManager::tryLockAnagrafica(uint matricola, uint &ruolo) {
 		PreparedStatement *pstmt;
 
 		pstmt = connection->prepareStatement("UPDATE Anagrafica SET statoVoto = ? WHERE matricola = ?");
-		mutex_commit.lock();
+
 		try{
 			pstmt->setUInt(1,statoVoto::votando);
 			pstmt->setUInt(2,matricola);
@@ -549,13 +592,15 @@ uint DataManager::tryLockAnagrafica(uint matricola, uint &ruolo) {
 		}
 		pstmt->close();
 		delete pstmt;
-		mutex_commit.unlock();
+
 	}
 
 
 
 	mutex_anagrafica.unlock();
 
+	connection->close();
+	delete connection;
 	return esito;
 
 }
@@ -563,6 +608,9 @@ uint DataManager::tryLockAnagrafica(uint matricola, uint &ruolo) {
 bool DataManager::infoVotanteByMatricola(uint matricola, string& nome,
 		string& cognome, uint& statoVoto) {
 	bool matricolaExist = false;
+	Connection * connection;
+	this->connectToAnagraficaDB(connection);
+
 	PreparedStatement *pstmt;
 	ResultSet * resultSet;
 	pstmt = connection->prepareStatement("SELECT * FROM Anagrafica WHERE matricola =?");
@@ -588,6 +636,8 @@ bool DataManager::infoVotanteByMatricola(uint matricola, string& nome,
 	pstmt->close();
 	delete pstmt;
 	delete resultSet;
+	connection->close();
+	delete connection;
 
 	return matricolaExist;
 }
@@ -617,12 +667,15 @@ bool DataManager::infoVotanteByMatricola(uint matricola, string& nome,
 
 bool DataManager::setNotVoted(uint matricola) {
 	bool unvoted = true;
+	Connection * connection;
+	this->connectToAnagraficaDB(connection);
+
 	PreparedStatement *pstmt;
 	pstmt = connection->prepareStatement("UPDATE Anagrafica SET statoVoto=? WHERE matricola=?");
 
 	mutex_anagrafica.lock();
 
-	mutex_commit.lock();
+
 	try{
 		pstmt->setUInt(1,statoVoto::non_espresso);
 		pstmt->setUInt(2,matricola);
@@ -634,24 +687,35 @@ bool DataManager::setNotVoted(uint matricola) {
 		unvoted = false;
 		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
 	}
-	mutex_commit.unlock();
+
 	mutex_anagrafica.unlock();
 
 	pstmt->close();
 	delete pstmt;
 
+	connection->close();
+	delete connection;
 	return unvoted;
 }
 
 bool DataManager::userSaltAndPassword(string userid,string &storedSalt, string &storedHashedPassword) {
 	bool useridExist =false;
-	PreparedStatement * pstmt;
+
+	Connection * connection;
+//	driver=get_driver_instance();
+//	connection = driver->connect("localhost:3306","root", "root");
+//	connection->setAutoCommit(false);
+//	connection->setSchema("mydb");
+	this->connectToMyDB(connection);
+
 	ResultSet * resultSet;
+	PreparedStatement * pstmt;
 	pstmt = connection->prepareStatement("SELECT salt, hashedPassword FROM Utenti WHERE userid = ?");
 	try{
 		pstmt->setString(1,userid);
 		resultSet = pstmt->executeQuery();
 		if(resultSet->next()){
+			cout << "utente " << userid << " trovato" << endl;
 			useridExist = true;
 			storedSalt = resultSet->getString("salt");
 			storedHashedPassword = resultSet->getString("hashedPassword");
@@ -666,11 +730,16 @@ bool DataManager::userSaltAndPassword(string userid,string &storedSalt, string &
 	delete pstmt;
 	delete resultSet;
 
+	//	connection.close();
+	//	delete connection;
 	return useridExist;
 }
 
 uint DataManager::getIdRPByUsername(string usernameRP) {
 	uint idRP;
+	Connection * connection;
+	this->connectToMyDB(connection);
+
 	PreparedStatement * pstmt;
 	ResultSet * resultSet;
 	pstmt = connection->prepareStatement
@@ -691,11 +760,17 @@ uint DataManager::getIdRPByUsername(string usernameRP) {
 	pstmt->close();
 	delete pstmt;
 	delete resultSet;
+
+	connection->close();
+	delete connection;
 	return idRP;
 }
 
 uint DataManager::getIdRPByProcedura(uint idProcedura) {
 	uint idRP = 0;
+	Connection * connection;
+	this->connectToMyDB(connection);
+
 	PreparedStatement * pstmt;
 	ResultSet * resultSet;
 	pstmt = connection->prepareStatement
@@ -717,12 +792,17 @@ uint DataManager::getIdRPByProcedura(uint idProcedura) {
 	pstmt->close();
 	delete pstmt;
 	delete resultSet;
+
+	connection->close();
+	delete connection;
 	return idRP;
 }
 
 string DataManager::getEncryptedPR_RP(uint idRP) {
 	//restituisce la chiave privata cifrata di RP, codificata esadecimale
 	string EncryptedPR_RP;
+	Connection * connection;
+	this->connectToMyDB(connection);
 
 	PreparedStatement * pstmt;
 	ResultSet * resultSet;
@@ -750,6 +830,8 @@ string DataManager::getEncryptedPR_RP(uint idRP) {
 	delete pstmt;
 	delete resultSet;
 
+	connection->close();
+	delete connection;
 	return EncryptedPR_RP; //HexEncoded
 
 }
@@ -758,7 +840,7 @@ uint DataManager::getNumberSchedeCompilate(uint idProcedura) {
 	uint numSchede;
 	PreparedStatement * pstmt;
 	ResultSet * resultSet;
-	pstmt = connection->prepareStatement
+	pstmt = connectionUrna->prepareStatement
 			("SELECT COUNT(*)  AS totaleSchede FROM SchedeCompilate WHERE idProcedura = ?");
 	try{
 
@@ -782,7 +864,7 @@ uint DataManager::getNumberSchedeCompilate(uint idProcedura) {
 vector<PacchettoVoto> DataManager::getPacchettiVoto(uint idProcedura) {
 	PreparedStatement *pstmt;
 	ResultSet* resultSet;
-	pstmt = connection->prepareStatement("SELECT * FROM SchedeCompilate WHERE idProcedura=?");
+	pstmt = connectionUrna->prepareStatement("SELECT * FROM SchedeCompilate WHERE idProcedura=?");
 	vector <PacchettoVoto> pacchetti;
 	try{
 		pstmt->setUInt(1,idProcedura);
@@ -848,15 +930,18 @@ string DataManager::dt_fromDB_toGMAhms(string dateDB) {
 void DataManager::votedNotCommit(uint matricola) {
 
 	// se sono qui è stato bloccato il mutex_commit da chi mi ha chiamato
+	this->connectToAnagraficaDB();
+
+
 	PreparedStatement *pstmt;
-	pstmt = connection->prepareStatement("UPDATE Anagrafica SET statoVoto=? WHERE matricola=?");
+	pstmt = connectionAnagrafica->prepareStatement("UPDATE Anagrafica SET statoVoto=? WHERE matricola=?");
 
 	try{
 		pstmt->setUInt(1,statoVoto::espresso);
 		pstmt->setUInt(2,matricola);
 
 		pstmt->executeUpdate();
-		//connection->commit();
+		//commit in commitUrnaAnagrafica()
 
 	}catch(SQLException &ex){
 		//voted = false;
@@ -864,6 +949,7 @@ void DataManager::votedNotCommit(uint matricola) {
 	}
 	pstmt->close();
 	delete pstmt;
+
 }
 
 void DataManager::storePacchettiSignedNoCommit(
@@ -880,7 +966,7 @@ void DataManager::storePacchettiSignedNoCommit(
 
 		PreparedStatement *pstmt;
 
-		pstmt = connection->prepareStatement("INSERT INTO SchedeCompilate (`idSchedaCompilata`, `idProcedura`,"
+		pstmt = connectionUrna->prepareStatement("INSERT INTO SchedeCompilate (`idSchedaCompilata`, `idProcedura`,"
 				" `fileVotoCifrato`, `chiavecifrata`, `ivcifrato`, `signatureUrna`, `nonce`) VALUES(?,?,?,?,?,?,?)");
 		try{
 			pstmt->setString(1,uniqueMAC);
@@ -909,7 +995,7 @@ void DataManager::storePacchettiSignedNoCommit(
 			pstmt->setUInt(7,nonce);
 
 			pstmt->executeUpdate();
-			//connection->commit();
+			//commit in commitUrnaAnagrafica();
 
 
 		}catch(SQLException &ex){
@@ -922,27 +1008,35 @@ void DataManager::storePacchettiSignedNoCommit(
 
 }
 
-void DataManager::myCommit() {
+void DataManager::commitUrnaAnagrafica() {
 
 	// se sono qui è stato bloccato il mutex_commit da chi mi ha chiamato
 	cout << "commit: pacchetti voto salvati e stato della matricola (espresso) salvati sul db" << endl;
 	try{
-		connection->commit();
+		connectionUrna->commit();
+		connectionAnagrafica->commit();
 	}catch(SQLException &ex){
 		cerr<<"Exception occurred: "<<ex.getErrorCode()<<endl;
 	}
+
+	connectionUrna->close();
+	connectionAnagrafica->close();
 }
 
-void DataManager::myRollback() {
+void DataManager::rollbackUrnaAnagrafica() {
 
 	// se sono qui è stato bloccato il mutex_commit da chi mi ha chiamato
 
 	cout << "rollback: pacchetti voto scartati e modifica stato della matricola su (espresso) non salvato sul db" << endl;
 	try{
-		connection->rollback();
+		connectionUrna->rollback();
+		connectionAnagrafica->rollback();
 	}catch(SQLException &ex){
 		cerr<<"Exception occurred: "<<ex.getErrorCode()<<endl;
 	}
+
+	connectionUrna->close();
+	connectionAnagrafica->close();
 }
 
 void DataManager::updateStatiProcedure() {
@@ -952,6 +1046,8 @@ void DataManager::updateStatiProcedure() {
 	string currentTime = currentTimeDbFormatted();
 	cout << "Current time: " << currentTime << endl;
 
+	Connection * connection;
+	this->connectToMyDB(connection);
 
 	//aggiornamento procedure concluse
 	//ottengo tute le procedure il cui termine di votazione è trascorso
@@ -986,7 +1082,7 @@ void DataManager::updateStatiProcedure() {
 				PreparedStatement *pstmt2;
 				cout << "La procedura " << idProceduraVoto <<  " è da aggiornare" << ", nuovo stato: " << statoAggiornato << endl;
 				pstmt2 = connection->prepareStatement("UPDATE ProcedureVoto SET stato=?, ultimaModifica=? WHERE idProceduraVoto=?");
-				mutex_commit.lock();
+
 				try{
 					pstmt2->setUInt(1,statoAggiornato);
 					pstmt2->setDateTime(2,currentTime);
@@ -996,7 +1092,7 @@ void DataManager::updateStatiProcedure() {
 				}catch(SQLException &ex){
 					cerr << "Exception occurred: "<<ex.getErrorCode()<<endl;
 				}
-				mutex_commit.unlock();
+
 				pstmt2->close();
 				delete pstmt2;
 
@@ -1076,7 +1172,7 @@ void DataManager::updateStatiProcedure() {
 		PreparedStatement *pstmt2;
 		cout << "La procedura " << idProceduraVoto <<  " è da aggiornare" << ", nuovo stato: " << statoProceduraAggiornato << endl;
 		pstmt2 = connection->prepareStatement("UPDATE ProcedureVoto SET stato=?, ultimaModifica=?  WHERE idProceduraVoto=?");
-		mutex_commit.lock();
+
 		//sezione critica
 		try{
 			pstmt2->setUInt(1,statoProceduraAggiornato);
@@ -1089,7 +1185,7 @@ void DataManager::updateStatiProcedure() {
 			cerr << "Exception occurred: "<<ex.getErrorCode()<<endl;
 		}
 		//fine sezione critica
-		mutex_commit.unlock();
+
 		pstmt2->close();
 		delete pstmt2;
 
@@ -1099,7 +1195,7 @@ void DataManager::updateStatiProcedure() {
 		PreparedStatement *pstmt2;
 		cout << "Rilevata nuova procedura, bisogna resettare lo stato dei votanti" << endl;
 		pstmt2 = connection->prepareStatement("UPDATE Anagrafica SET statoVoto = ?");
-		mutex_commit.lock();
+
 		try{
 
 			pstmt2->setUInt(1, statoVotantiResettato);
@@ -1108,12 +1204,15 @@ void DataManager::updateStatiProcedure() {
 		}catch(SQLException &ex){
 			cerr << "Exception occurred: "<<ex.getErrorCode()<<endl;
 		}
-		mutex_commit.unlock();
+
 		pstmt2->close();
 		delete pstmt2;
 
 	}
 
+
+	connection->close();
+	delete connection;
 
 }
 
@@ -1129,4 +1228,45 @@ string DataManager::currentTimeDbFormatted() {
 	strftime(buffer,20,"%Y-%m-%d %X",ltm); //%F equivalent to %Y-%m-%d 2001-08-23 , %X equivalent to %T 14:55:02
 	string currentTime = buffer;
 	return currentTime;
+}
+
+void DataManager::connectToMyDB(Connection *&connection) {
+
+	driver = get_driver_instance();
+	connection = driver->connect("localhost:3306","root", "root");
+	connection->setAutoCommit(false);
+	connection->setSchema("mydb");
+
+	cout << "connessione a mydb" << endl;
+}
+
+void DataManager::connectToAnagraficaDB(Connection *& connection) {
+	connection=driver->connect("localhost:3306","root", "root");
+	connection->setAutoCommit(false);
+	connection->setSchema("anagraficaDB");
+	cout << "connessione a anagraficaDB" << endl;
+
+}
+
+void DataManager::connectToUrnaDB() {
+	connectionUrna=driver->connect("localhost:3306","root", "root");
+	connectionUrna->setAutoCommit(false);
+	connectionUrna->setSchema("urnaDB");
+	cout << "connessione a anagraficaDB" << endl;
+
+}
+
+
+
+void DataManager::connectToAnagraficaDB() {
+	connectionAnagrafica=driver->connect("localhost:3306","root", "root");
+	connectionAnagrafica->setAutoCommit(false);
+	connectionAnagrafica->setSchema("anagraficaDB");
+	cout << "connessione a anagraficaDB" << endl;
+
+}
+
+void DataManager::connectionCloseUrnaAnagrafica() {
+	connectionUrna->close();
+	connectionAnagrafica->close();
 }

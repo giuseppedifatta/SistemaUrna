@@ -257,6 +257,7 @@ void SSLServer::serviceStoreSchedeCompilate(SSL * ssl, string ipClient){
 	vector <PacchettoVoto> pacchetti;
 
 
+	uv->initConnessioneUrnaDB();
 	//per ogni scheda da ricevere
 	for(uint i = 0 ; i < numSchede; i++){
 		PacchettoVoto pv;
@@ -352,7 +353,7 @@ void SSLServer::serviceStoreSchedeCompilate(SSL * ssl, string ipClient){
 	uint matricola = atoi(matr.c_str());
 	cout << "Ha votato la matricola: " << matricola << endl;
 
-	uv->lockMutexCommit();
+
 	//sezione critica DB
 	//imposta lo stato della matricola su votato, ma non conferma la modifica
 
@@ -383,8 +384,6 @@ void SSLServer::serviceStoreSchedeCompilate(SSL * ssl, string ipClient){
 	}
 	//fine sezione critica DB
 
-	uv->unlockMutexCommit();
-	cout << "Mutex commit sbloccato." << endl;
 
 	//invio esito
 	if(stored){
@@ -684,6 +683,7 @@ void SSLServer::serviceScrutinio(SSL * ssl) {
 	receiveString_SSL(ssl,derivedKey);
 	cout << "Ricevuta chiave simmetrica per decifrare chiave privata di RP: " << derivedKey << endl;
 
+	uv->initConnessioneUrnaDB();
 
 	uint numSchedeDaScrutinare = 0; //
 	uv->numSchedeCompilate(idProcedura);

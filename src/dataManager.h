@@ -31,14 +31,22 @@ using namespace std;
 class DataManager {
 private:
 
-    Driver *driver;
-    Connection *connection;
+	Driver *driver;
+	Connection *connectionUrna;
+	Connection *connectionAnagrafica;
 public:
+
+	void connectToMyDB(Connection *& connection);
+	void connectToAnagraficaDB(Connection *& connection);
+	void connectToAnagraficaDB();
+	void connectToUrnaDB();
+	void connectionCloseUrnaAnagrafica();
+
 	DataManager();
 	virtual ~DataManager();
 	ProceduraVoto getProceduraCorrente();
 	vector <ProceduraVoto> getProcedureRP(uint idRP);
-	mutex mutex_commit; //mutex per operazioni di modifica atomiche sul db
+
 
 	bool isScrutinioEseguito(uint idProcedura);
 	vector <string> getSchedeVoto(uint idProceduraCorrente);
@@ -62,8 +70,8 @@ public:
 	//non usare con l'oggetto model di urnavirtuale.h
 	void votedNotCommit(uint matricola);
 	void storePacchettiSignedNoCommit(vector <PacchettoVoto> pacchetti);
-	void myCommit();
-	void myRollback();
+	void commitUrnaAnagrafica();
+	void rollbackUrnaAnagrafica();
 
 	enum statoVoto{
 		non_espresso,
@@ -89,6 +97,8 @@ private:
 
 	void updateStatiProcedure();
 	string currentTimeDbFormatted();
+
+
 };
 
 #endif /* DATAMANAGER_H_ */
