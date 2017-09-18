@@ -8,6 +8,7 @@ Candidato::Candidato(string nome, string lista, string cognome, string data, str
     this->luogoNascita = luogo;
     this->lista = lista;
     this->matricola = matricola;
+    numVoti = 0;
 }
 
 
@@ -71,3 +72,10 @@ void Candidato::setMatricola(const string &value)
     matricola = value;
 }
 
+void Candidato::incVoti() {
+	numVoti++;
+}
+
+uint Candidato::getNumVoti() const {
+	return numVoti;
+}

@@ -52,7 +52,7 @@ public:
     };
 
 
-    std::vector<Candidato> getCandidati() const;
+
 
     unsigned int getIdProceduraVoto() const;
     void setIdProceduraVoto(unsigned int value);
@@ -68,6 +68,8 @@ public:
     //void setListeElettorali(const std::vector<ListaElettorale> &value);
 
     void removeCandidatiFromScheda(vector<Candidato> &candidatiDaRimuovere);
+	const std::vector<Candidato>& getCandidati() const;
+	vector<Candidato>* getPointerCandidati();
 private:
     unsigned int idProceduraVoto;
     unsigned int id;

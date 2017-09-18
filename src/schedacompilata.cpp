@@ -41,11 +41,11 @@ void SchedaCompilata::setTipologiaElezione(const uint &value)
 }
 
 void SchedaCompilata::addMatricolaPreferenza(string matricolaPreferenza)
-{
-    matricolePreferenze.push_back(matricolaPreferenza);
+{	uint matricola = atoi(matricolaPreferenza.c_str());
+    matricolePreferenze.push_back(matricola);
 }
 
-vector<string> SchedaCompilata::getMatricolePreferenze() const
+vector<uint> SchedaCompilata::getMatricolePreferenze() const
 {
     return matricolePreferenze;
 }
@@ -63,10 +63,6 @@ void SchedaCompilata::setIdSeggio(uint idSeggio) {
 	this->idSeggio = idSeggio;
 }
 
-void SchedaCompilata::setMatricolePreferenze(
-		const vector<string>& matricolePreferenze) {
-	this->matricolePreferenze = matricolePreferenze;
-}
 
 void SchedaCompilata::setIdScheda(const uint &value)
 {

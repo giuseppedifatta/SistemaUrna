@@ -175,10 +175,6 @@ void SchedaVoto::setModalitaAdd(unsigned int value)
     modalitaAdd = value;
 }
 
-std::vector<Candidato> SchedaVoto::getCandidati() const
-{
-    return candidati;
-}
 
 unsigned int SchedaVoto::getIdProceduraVoto() const
 {
@@ -190,4 +186,10 @@ void SchedaVoto::setIdProceduraVoto(unsigned int value)
     idProceduraVoto = value;
 }
 
+const std::vector<Candidato>& SchedaVoto::getCandidati() const {
+	return candidati;
+}
 
+vector<Candidato>* SchedaVoto::getPointerCandidati() {
+	return &candidati;
+}

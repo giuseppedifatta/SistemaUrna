@@ -559,8 +559,20 @@ bool UrnaVirtuale::doScrutinio(uint idProcedura, string derivedKey) {
 	cout << "Pacchetti estratti dal database: " << pacchettiEstratti << endl;
 	uint schedeValide = 0;
 	uint schedeBianche = 0;
+
+	//ottengo dal db le schede voto con i dati dei candidati
+	vector <string> xmlSchedeVoto = model->getSchedeVoto(idProcedura);
+	//parsare schede voto con i dati dei candidati
+	vector <SchedaVoto> schedeVoto = parsingSchedeXML(xmlSchedeVoto);
+
+	//i dati di voto vengono suddivisi per seggio
+	vector <RisultatiSeggio> risultatiSeggi; //simuliamo le urne presso i seggi
+	//e conteggiati nel totale
+	RisultatiSeggio risultatiComplessivi; //urna virtuale, idSeggio = 0, valore predefinito
+	risultatiComplessivi.setSchedeVotoRisultato(schedeVoto);
+
 	for(uint i=0; i< pacchetti.size();i++){
-		//1.verificare la firma, quindi accettare o rifiutare un pacchetto
+		//1.estrazione informazione dal pacchetto di voto
 		string idSchedaCompilata ,schedaCifrata, kc, ivc, encodedSignature;
 		uint nonce;
 		uint idProcedura = pacchetti.at(i).getIdProcedura();
@@ -582,7 +594,7 @@ bool UrnaVirtuale::doScrutinio(uint idProcedura, string derivedKey) {
 		cout << "nonce: " << nonce << endl;
 		cout << "idProcedura: " << idProcedura << endl;
 
-		//calcolo la firma
+		//2.verifica della firma
 		int success = verifySignString_U(dataToVerify, encodedSignature);
 
 		//se non è stato rifiutato
@@ -597,7 +609,7 @@ bool UrnaVirtuale::doScrutinio(uint idProcedura, string derivedKey) {
 
 
 			SchedaCompilata sc;
-			//3. parsing della scheda di voto, viene decifrata e accetta se nonce decifrato è
+			//3.parsing della scheda di voto, viene decifrata e accetta se l'nonce decifrato è
 			//uguale a quello presente in chiaro nel pacchetto di voto
 			uint compilata_bianca;
 			bool accepted = parseDecryptSchedaCifrata(schedaCifrata,k,iv,nonce,&sc,compilata_bianca);
@@ -608,10 +620,24 @@ bool UrnaVirtuale::doScrutinio(uint idProcedura, string derivedKey) {
 				schedeValide++;
 			}
 			if(accepted){
+				//4.lettura dei voti per singola scheda decifrata
+				uint idSeggio = sc.getIdSeggio();
 
-				//4. conteggiare le preferenze
+				//aggiungo il seggio alla lista dei seggi presso cui si è votato e gli fornisco le schede con i dati dei candidati
+				addSeggioIfNotExist(&risultatiSeggi,idSeggio,schedeVoto);
+				cout << "---Seggio "<< idSeggio <<"----" << endl;
+				//ora il seggio è presente nei seggi che hanno risultati di voto,
+				//conteggio le preferenze per la scheda che è stata compilata presso quel seggio
+				for(uint i = 0; i < risultatiSeggi.size();i++){
+					if(risultatiSeggi.at(i).getIdSeggio()==idSeggio){
+						contarePreferenze(sc,&risultatiSeggi.at(i));
+						break;
+					}
+				}
 
-
+				//conteggio indifferenziato rispetto ai seggi, potrei farlo dopo, ma andando a rianalizzare tutti i risultati per signoli seggi
+				cout << "---UrnaCentrale "<< idSeggio <<"----" << endl;
+				contarePreferenze(sc,&risultatiComplessivi);
 			}
 		}
 		else{
@@ -629,13 +655,15 @@ bool UrnaVirtuale::doScrutinio(uint idProcedura, string derivedKey) {
 		cout << pacchettiVerificati << " pacchetti verificati!" << endl;
 	}
 	cout << "Schede valide: " << schedeValide << endl;
-	cout << "Schede compilate: " << schedeBianche << endl;
-	//7. tutte le schede sono state scrutinate, creare un file xml in cui conservare queste informazioni
+	cout << "Schede bianche: " << schedeBianche << endl;
+
+	//5. tutte le schede sono state scrutinate, creare un file xml in cui conservare queste informazioni
 	//preferenze divise per seggio, per idScheda, per lista, per candidato
-	//totale dei voti non distinti per seggio?
+	//date i risultati dei seggi calcolati e i risultati complessivi
+	//analizzo questi oggetti ed estraggo per ognuno un file xml rappresentativo
 
 
-	//8. salvare file xml sul database e aggiornare lo stato della procedura su scrutinata
+	//6. salvare file xml sul database e aggiornare lo stato della procedura su scrutinata
 
 	return true;
 }
@@ -1031,4 +1059,186 @@ bool UrnaVirtuale::parseDecryptSchedaCifrata(string schedaCifrata,
 
 	}
 	return true;
+}
+
+void UrnaVirtuale::contarePreferenze(SchedaCompilata sc,
+		RisultatiSeggio *rs) {
+	uint idScheda = sc.getIdScheda();
+
+	//ottengo il riferimento alle schede voto risultato
+	vector <SchedaVoto> *schedeVotoRisultato = rs->getPointerSchedeVotoRisultato();
+	cout << "inizio ricerca scheda a cui aggiungere le preferenze" << endl;
+
+	for(uint i = 0; i < schedeVotoRisultato->size();i++){
+		if(schedeVotoRisultato->at(i).getId() == idScheda){
+			//trovata scheda in cui aggiungere il conteggio delle preferenze
+			vector<uint> matricole = sc.getMatricolePreferenze();
+			cout << "scheda trovata, id: " << idScheda << endl;
+			cout << "Preferenze da conteggiare: " << matricole.size() << endl;
+			for(uint m = 0; m < matricole.size(); m++){
+				string matricola = to_string(matricole.at(m));
+				vector <Candidato> *candidati = schedeVotoRisultato->at(i).getPointerCandidati();
+				for (uint c = 0; c < candidati->size();c++){
+					if(matricola == candidati->at(c).getMatricola()){
+						candidati->at(c).incVoti();
+						cout << "Scheda " << idScheda << ", "
+								<< candidati->at(c).getNome() << " "
+								<< candidati->at(c).getCognome()
+								<< ": " << candidati->at(c).getNumVoti() << " voti" << endl;
+						break;
+					}
+
+				}
+			}
+		}
+	}
+
+}
+
+void UrnaVirtuale::addSeggioIfNotExist(vector<RisultatiSeggio>* risultatiSeggi,
+		uint idSeggio, const vector<SchedaVoto>& schedeVoto) {
+	for(uint i = 0; i < risultatiSeggi->size();i++){
+		if(risultatiSeggi->at(i).getIdSeggio()==idSeggio){
+			//l'instanza di risultati seggio per questo idSeggio esiste già
+			//nulla da fare, esco dalla funzione
+			return;
+		}
+	}
+	cout << "Creata instanza risultati per il seggio: " << idSeggio << endl;
+	RisultatiSeggio rs(idSeggio);
+	rs.setSchedeVotoRisultato(schedeVoto);
+	//aggiungo al vettore delle instanze di risultato dei seggi
+	risultatiSeggi->push_back(rs);
+	cout << "instanza aggiunta al vettore dei risultati di seggio" << endl;
+}
+
+vector<SchedaVoto> UrnaVirtuale::parsingSchedeXML(vector<string> &schede){
+	vector<SchedaVoto> schedeVoto;
+
+	for(uint i = 0; i< schede.size(); i++){
+		SchedaVoto sv;
+
+		//parsing file xml e inserimento dati nell'oggetto scheda voto da aggiungere al vettore delle schede
+
+		XMLDocument xmlDoc;
+		xmlDoc.Parse(schede.at(i).c_str());
+
+		XMLNode *rootNode = xmlDoc.FirstChild();
+
+		XMLText* textNodeIdProcedura = rootNode->FirstChildElement("idProcedura")->FirstChild()->ToText();
+		uint idProcedura = atoi(textNodeIdProcedura->Value());
+		cout << "PV: idProcedura: " << idProcedura << endl;
+		sv.setIdProceduraVoto(idProcedura);
+
+		XMLText* textNodeIdScheda = rootNode->FirstChildElement("id")->FirstChild()->ToText();
+		uint idScheda = atoi(textNodeIdScheda->Value());
+		cout << "PV: idScheda: " << idScheda << endl;
+		sv.setId(idScheda);
+
+		XMLText* textNodeTipologiaElezione= rootNode->FirstChildElement("tipologiaElezione")->FirstChild()->ToText();
+		uint tipologiaElezione = atoi(textNodeTipologiaElezione->Value());
+		cout << "PV: tipologia elezione: " << tipologiaElezione << endl;
+		sv.setTipoElezione(tipologiaElezione);
+
+		XMLText* textNodeNumeroPreferenze = rootNode->FirstChildElement("numeroPreferenze")->FirstChild()->ToText();
+		uint numeroPreferenze = atoi(textNodeNumeroPreferenze->Value());
+		cout << "PV: Numero preferenze: " << numeroPreferenze << endl;
+		sv.setNumPreferenze(numeroPreferenze);
+
+
+		XMLElement * listeElement = rootNode->FirstChildElement("liste");
+
+		XMLElement * firstListaElement = listeElement->FirstChildElement("lista");
+		XMLElement * lastListaElement = listeElement->LastChildElement("lista");
+
+		XMLElement *listaElement = firstListaElement;
+		bool lastLista = false;
+		do{
+
+			int idLista = listaElement->IntAttribute("id");
+			cout << "PV:  --- lista trovata" << endl;
+			cout << "PV: id Lista: " << idLista << endl;
+			string nomeLista = listaElement->Attribute("nome");
+			cout << "PV: nome: " << nomeLista << endl;
+
+			XMLElement * firstCandidatoElement  = listaElement->FirstChildElement("candidato");
+			XMLElement * lastCandidatoElement = listaElement->LastChildElement("candidato");
+
+			XMLElement * candidatoElement = firstCandidatoElement;
+			//ottengo tutti i candidati della lista
+			bool lastCandidato = false;
+			do{
+				int id = candidatoElement->IntAttribute("id");
+				cout << "PV: trovato candidato, id: " << id << endl;
+
+				XMLElement * matricolaElement = candidatoElement->FirstChildElement("matricola");
+				XMLNode * matricolaInnerNode = matricolaElement->FirstChild();
+				string matricola;
+				if(matricolaInnerNode!=nullptr){
+					matricola = matricolaInnerNode->ToText()->Value();
+				}
+				cout << matricola << endl;
+
+				XMLElement *nomeElement = matricolaElement->NextSiblingElement("nome");
+				XMLNode * nomeInnerNode = nomeElement->FirstChild();
+				string nome;
+				if(nomeInnerNode!=nullptr){
+					nome = nomeInnerNode->ToText()->Value();
+				}
+				cout << nome << endl;
+
+				XMLElement *cognomeElement = nomeElement->NextSiblingElement("cognome");
+				XMLNode * cognomeInnerNode = cognomeElement->FirstChild();
+				string cognome;
+				if(cognomeInnerNode!=nullptr){
+					cognome = cognomeInnerNode->ToText()->Value();
+				}
+				cout << cognome << endl;
+
+				XMLElement *luogoNascitaElement = cognomeElement->NextSiblingElement("luogoNascita");
+				XMLNode * luogoNascitaInnerNode = luogoNascitaElement->FirstChild();
+				string luogoNascita;
+				if(luogoNascitaInnerNode!=nullptr){
+					luogoNascita = luogoNascitaInnerNode->ToText()->Value();
+				}
+				cout << luogoNascita << endl;
+
+				XMLElement *dataNascitaElement = luogoNascitaElement->NextSiblingElement("dataNascita");
+				XMLNode * dataNascitaInnerNode = dataNascitaElement->FirstChild();
+				string dataNascita;
+				if(dataNascitaInnerNode!=nullptr){
+					dataNascita = dataNascitaInnerNode->ToText()->Value();
+				}
+				cout << dataNascita << endl;
+
+				cout << "PV: Estratti i dati del candidato id: " << id << endl;
+				sv.addCandidato(matricola,nome,cognome,nomeLista,dataNascita,luogoNascita);
+
+				//accesso al successivo candidato
+				if(candidatoElement == lastCandidatoElement){
+					lastCandidato = true;
+				}else {
+					candidatoElement = candidatoElement->NextSiblingElement("candidato");
+					cout << "PV: ottengo il puntatore al successivo candidato" << endl;
+				}
+			}while(!lastCandidato);
+
+			cout << "PV: non ci sono altri candidati nella lista: " << nomeLista << endl;
+
+
+			if(listaElement == lastListaElement){
+				lastLista = true;
+			}
+			else{
+				//accediamo alla successiva lista nella scheda di voto
+				listaElement = listaElement->NextSiblingElement("lista");
+				cout << "PV: ottengo il puntatore alla successiva lista" << endl;
+			}
+		}while(!lastLista);
+		cout << "PV: non ci sono altre liste" << endl;
+
+		schedeVoto.push_back(sv);
+	}
+
+	return schedeVoto;
 }

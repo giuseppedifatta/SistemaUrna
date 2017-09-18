@@ -17,6 +17,7 @@
 #include "proceduravoto.h"
 #include "dataManager.h"
 #include "schedacompilata.h"
+#include "risultatiSeggio.h"
 
 #include "cryptopp/osrng.h"
 #include "cryptopp/cryptlib.h"
@@ -124,6 +125,10 @@ private:
 	CryptoPP::RSA::PrivateKey extractPrivatePemKey(const char * key_pem_filePath);
 	void getPublicKeyFromCert(CryptoPP::BufferedTransformation & certin,		CryptoPP::BufferedTransformation & keyout);
 
+
+	void contarePreferenze(SchedaCompilata sc,RisultatiSeggio *rs);
+	void addSeggioIfNotExist(vector <RisultatiSeggio> *risultatiSeggi,uint idSeggio,const vector <SchedaVoto> &schedeVoto);
+	vector<SchedaVoto> parsingSchedeXML(vector<string> &schede);
 };
 
 #endif /* URNAVIRTUALE_H_ */

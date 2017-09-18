@@ -27,6 +27,9 @@ public:
     string getMatricola() const;
     void setMatricola(const string &value);
 
+    void incVoti();
+	uint getNumVoti() const;
+
 private:
     string lista;
     string nome;
@@ -34,6 +37,7 @@ private:
     string luogoNascita;
     string dataNascita;
     string matricola;
+    uint numVoti;
 
 
 };

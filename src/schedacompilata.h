@@ -7,7 +7,7 @@ class SchedaCompilata
 {
 private:
     uint nonce;
-    vector <string> matricolePreferenze;
+    vector <uint> matricolePreferenze;
     uint idProcedura;
     uint numPreferenze;
     uint idScheda;
@@ -25,12 +25,12 @@ public:
     uint getTipologiaElezione() const;
     void setTipologiaElezione(const uint &value);
     void addMatricolaPreferenza(string matricolaPreferenza);
-    vector<string> getMatricolePreferenze() const;
+    vector<uint> getMatricolePreferenze() const;
     uint getIdScheda() const;
     void setIdScheda(const uint &value);
 	uint getIdSeggio() const;
 	void setIdSeggio(uint idSeggio);
-	void setMatricolePreferenze(const vector<string>& matricolePreferenze);
+
 };
 
 #endif // SCHEDACOMPILATA_H
