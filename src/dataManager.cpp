@@ -702,10 +702,10 @@ bool DataManager::userSaltAndPassword(string userid,string &storedSalt, string &
 	bool useridExist =false;
 
 	Connection * connection;
-//	driver=get_driver_instance();
-//	connection = driver->connect("localhost:3306","root", "root");
-//	connection->setAutoCommit(false);
-//	connection->setSchema("mydb");
+	//	driver=get_driver_instance();
+	//	connection = driver->connect("localhost:3306","root", "root");
+	//	connection->setAutoCommit(false);
+	//	connection->setSchema("mydb");
 	this->connectToMyDB(connection);
 
 	ResultSet * resultSet;
@@ -1190,6 +1190,9 @@ void DataManager::updateStatiProcedure() {
 		delete pstmt2;
 
 	}
+	connection->close();
+	connection = nullptr;
+	this->connectToAnagraficaDB(connection);
 	if(resetStatoVotanti){
 
 		PreparedStatement *pstmt2;
@@ -1210,9 +1213,9 @@ void DataManager::updateStatiProcedure() {
 
 	}
 
-
 	connection->close();
 	delete connection;
+
 
 }
 

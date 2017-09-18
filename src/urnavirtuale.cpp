@@ -655,7 +655,7 @@ bool UrnaVirtuale::doScrutinio(uint idProcedura, string derivedKey) {
 		return false;
 	}
 	else{
-		cout << pacchettiVerificati << " pacchetti verificati!" << endl;
+		cout << pacchettiVerificati << " pacchetti estratti e verificati!" << endl;
 	}
 	cout << "Schede valide: " << schedeValide << endl;
 	cout << "Schede bianche: " << schedeBianche << endl;
