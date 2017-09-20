@@ -193,3 +193,7 @@ const std::vector<Candidato>& SchedaVoto::getCandidati() const {
 vector<Candidato>* SchedaVoto::getPointerCandidati() {
 	return &candidati;
 }
+
+vector<ListaElettorale>* SchedaVoto::getPointerListeElettorali() {
+	return &listeElettorali;
+}

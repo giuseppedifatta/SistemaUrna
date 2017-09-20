@@ -116,6 +116,8 @@ private:
 
 	string signString_U(string data);
 	int verifySignString_U(string data, string encodedSignature);
+	string signString_RP(string data,CryptoPP::RSA::PrivateKey privateKey);
+	int verifySignString_RP(string data, string encodedSignature,string encodedPublicKey);
 	string generaDigestSHA256(string data); //non usato
 	bool checkDigestSHA256(string digest, string dataToCheck); //non usato
 	bool parseDecryptSchedaCifrata(string schedaCifrata,SecByteBlock k ,SecByteBlock iv, uint nonce,SchedaCompilata* sc,uint &compilata_bianca);
@@ -129,7 +131,10 @@ private:
 
 	void contarePreferenze(SchedaCompilata sc,RisultatiSeggio *rs);
 	void addSeggioIfNotExist(vector <RisultatiSeggio> *risultatiSeggi,uint idSeggio,const vector <SchedaVoto> &schedeVoto);
-	vector<SchedaVoto> parsingSchedeXML(vector<string> &schede);
+	vector<SchedaVoto> parsingSchedeVotoXML(vector<string> &schede);
+	void createScrutinioXML(vector<RisultatiSeggio>& risultatiSeggi,XMLDocument *xmlDoc);
+
+
 };
 
 #endif /* URNAVIRTUALE_H_ */

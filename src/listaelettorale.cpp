@@ -41,3 +41,6 @@ vector<Candidato> ListaElettorale::getCandidati() const
     return candidati;
 }
 
+vector<Candidato>* ListaElettorale::getPointerCandidati() {
+	return &candidati;
+}

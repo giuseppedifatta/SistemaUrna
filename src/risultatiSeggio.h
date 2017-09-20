@@ -20,6 +20,7 @@ public:
 
 	vector<SchedaVoto>* getPointerSchedeVotoRisultato();
 	void setSchedeVotoRisultato(const vector<SchedaVoto>& schedeVotoRisultato);
+	const vector<SchedaVoto>& getSchedeVotoRisultato() const;
 
 private:
 	vector <SchedaVoto> schedeVotoRisultato;

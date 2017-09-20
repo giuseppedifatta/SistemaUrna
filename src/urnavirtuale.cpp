@@ -9,15 +9,15 @@
 #include "RSA-PSS_utils.h"
 
 UrnaVirtuale::UrnaVirtuale() {
-	// TODO Auto-generated constructor stub
+
 	model = new DataManager();
-//	modelPacchetti = new DataManager();
-//	modelAnagrafica = new DataManager();
+	//	modelPacchetti = new DataManager();
+	//	modelAnagrafica = new DataManager();
 	//modelPacchetti = new DataManager();
 }
 
 UrnaVirtuale::~UrnaVirtuale() {
-	// TODO Auto-generated destructor stub
+	delete model;
 }
 
 uint UrnaVirtuale::getIdProceduraCorrente(){
@@ -56,22 +56,6 @@ string UrnaVirtuale::getPublicKeyRP(uint idProceduraCorrente){
 bool UrnaVirtuale::checkMACasUniqueID(string macPacchettoVoto) {
 	return model->uniqueIDSchedaCompilata(macPacchettoVoto);
 }
-
-//bool UrnaVirtuale::storePacchettoVoto(string idSchedaCompilata,
-//		string schedaCifrata, string kc, string ivc, uint nonce) {
-//	uint idProcedura = this->getIdProceduraCorrente();
-//	string dataToStore = idSchedaCompilata + schedaCifrata + kc + ivc + std::to_string(nonce) + std::to_string(idProcedura);
-//	//TODO firmare pacchetto di voto
-//	cout << idSchedaCompilata << endl;
-//	cout << schedaCifrata << endl;
-//	cout << kc << endl;
-//	cout << ivc << endl;
-//
-//	string encodedSignature = signString_U(dataToStore);
-//
-//	//chiedere al model di memorizzare il pacchetto di voto sul database
-//	return model->storeVotoFirmato_U(idSchedaCompilata,schedaCifrata,kc,ivc,nonce, encodedSignature, idProcedura);
-//}
 
 string UrnaVirtuale::signString_U(string data) {
 
@@ -148,6 +132,91 @@ string UrnaVirtuale::signString_U(string data) {
 		);// StringSource
 
 		cout << "Verified signature on message" << endl;
+
+	} // try
+
+	catch (CryptoPP::Exception& e) {
+		cerr << "Error: " << e.what() << endl;
+	}
+
+	return encodedSignature;
+}
+
+
+string UrnaVirtuale::signString_RP(string data,CryptoPP::RSA::PrivateKey privateKey) {
+
+
+	ByteQueue queue;
+	privateKey.Save(queue);
+	HexEncoder encoder;
+	queue.CopyTo(encoder);
+	encoder.MessageEnd();
+
+	string s;
+	StringSink ss(s);
+	encoder.CopyTo(ss);
+	ss.MessageEnd();
+	//cout << "PrivateKey:" << s << endl;
+
+	//cout << "Data to sign: " << data << endl;
+
+	string signature;
+	string encodedSignature;
+	////////////////////////////////////////////////
+	try{
+		// Sign and Encode
+		RSASS<PSS, SHA256>::Signer signer(privateKey);
+
+		AutoSeededRandomPool rng;
+
+		StringSource(data, true,
+				new SignerFilter(rng, signer, new StringSink(signature)) // SignerFilter
+		);// StringSource
+		//cout << " Signature: " << signature << endl;
+
+		StringSource(signature,true,
+				new HexEncoder(
+						new StringSink(encodedSignature)
+				)//HexEncoder
+		);//StringSource
+		//cout << "Signature encoded: " << encodedSignature << endl;
+
+		//		//------ verifica signature
+		//		FileSource certin(
+		//				"/home/giuseppe/myCA/intermediate/certs/localhost.cert.der", true,
+		//				NULL, true);
+		//		FileSink keyout("localhost-public.key", true);
+		//
+		//		getPublicKeyFromCert(certin, keyout);
+		//
+		//		//non dimenticare di chiudere il buffer!!!!!!!
+		//		keyout.MessageEnd();
+		//
+		//		RSA::PublicKey publicKey;
+		//		LoadPublicKey("localhost-public.key", publicKey);
+		//
+		//
+		//		ByteQueue queue;
+		//		publicKey.Save(queue);
+		//		HexEncoder encoder;
+		//		queue.CopyTo(encoder);
+		//		encoder.MessageEnd();
+		//
+		//		string s;
+		//		StringSink ss(s);
+		//		encoder.CopyTo(ss);
+		//		ss.MessageEnd();
+		//		cout << "PublicKey Urna: " << s << endl;
+		//		////////////////////////////////////////////////
+		//		// Verify and Recover
+		//		RSASS<PSS, SHA256>::Verifier verifier(publicKey);
+		//		//cout << data + signature << endl;
+		//		StringSource(data + signature, true,
+		//				new SignatureVerificationFilter(verifier, NULL,
+		//						SignatureVerificationFilter::THROW_EXCEPTION) // SignatureVerificationFilter
+		//		);// StringSource
+		//
+		//		cout << "Verified signature on message" << endl;
 
 	} // try
 
@@ -566,7 +635,7 @@ bool UrnaVirtuale::doScrutinio(uint idProcedura, string derivedKey) {
 	//ottengo dal db le schede voto con i dati dei candidati
 	vector <string> xmlSchedeVoto = model->getSchedeVoto(idProcedura);
 	//parsare schede voto con i dati dei candidati
-	vector <SchedaVoto> schedeVoto = parsingSchedeXML(xmlSchedeVoto);
+	vector <SchedaVoto> schedeVoto = parsingSchedeVotoXML(xmlSchedeVoto);
 
 	//i dati di voto vengono suddivisi per seggio
 	vector <RisultatiSeggio> risultatiSeggi; //simuliamo le urne presso i seggi
@@ -660,14 +729,30 @@ bool UrnaVirtuale::doScrutinio(uint idProcedura, string derivedKey) {
 	cout << "Schede valide: " << schedeValide << endl;
 	cout << "Schede bianche: " << schedeBianche << endl;
 
-	//5. tutte le schede sono state scrutinate, creare un file xml in cui conservare queste informazioni
-	//preferenze divise per seggio, per idScheda, per lista, per candidato
-	//date i risultati dei seggi calcolati e i risultati complessivi
-	//analizzo questi oggetti ed estraggo per ognuno un file xml rappresentativo
+	//5. tutte le schede sono state scrutinate, creare file xml con tutti i dati dei risultati divisi per seggio
+
+	//aggiungo in testa al vettore i risultati delle seggio 0 = Urna totale
+	risultatiSeggi.insert(risultatiSeggi.begin(),risultatiComplessivi);
+
+	XMLDocument * scrutinioDoc = new XMLDocument();
+	this->createScrutinioXML(risultatiSeggi,scrutinioDoc);
 
 
-	//6. salvare file xml sul database e aggiornare lo stato della procedura su scrutinata
 
+	XMLPrinter printer;
+	(*scrutinioDoc).Print(&printer);
+	string scrutinioXML = printer.CStr();
+	cout << "------------Scrutinio------------" << endl;
+	cout << scrutinioXML << endl;
+
+	delete scrutinioDoc;
+
+
+	//7. firma scrutinio con chiave privata del Responsabile di Procedimento
+	string encodedSignatureRP = this->signString_RP(scrutinioXML+to_string(idProcedura),privateKeyRP);
+	cout << "Firma di RP al file di scrutinio+idProceduraAsString: " << encodedSignatureRP << endl;
+
+	//model->storeScrutinio(scrutinioXML,idProcedura, encodedSignatureRP);
 	return true;
 }
 
@@ -1060,7 +1145,7 @@ void UrnaVirtuale::contarePreferenze(SchedaCompilata sc,
 		RisultatiSeggio *rs) {
 	uint idScheda = sc.getIdScheda();
 
-	//ottengo il riferimento alle schede voto risultato
+	//ottengo il riferimento alle schede voto risultato del seggio per cui sto conteggiando i voti
 	vector <SchedaVoto> *schedeVotoRisultato = rs->getPointerSchedeVotoRisultato();
 	cout << "inizio ricerca scheda a cui aggiungere le preferenze" << endl;
 
@@ -1071,21 +1156,49 @@ void UrnaVirtuale::contarePreferenze(SchedaCompilata sc,
 			cout << "scheda trovata, id: " << idScheda << endl;
 			cout << "Preferenze da conteggiare: " << matricole.size() << endl;
 			for(uint m = 0; m < matricole.size(); m++){
+				//per ogni preferenza matricola da conteggiare
+				cout << "Preferenza n. " << m+1 << endl;
 				string matricola = to_string(matricole.at(m));
 				vector <Candidato> *candidati = schedeVotoRisultato->at(i).getPointerCandidati();
+				//incremento voti ai candidati
 				for (uint c = 0; c < candidati->size();c++){
+
 					if(matricola == candidati->at(c).getMatricola()){
+						//ho trovato il candidato relativo alla matricola, aggiorno preferenze del candidato
 						candidati->at(c).incVoti();
 						cout << "Scheda " << idScheda << ", "
 								<< candidati->at(c).getNome() << " "
 								<< candidati->at(c).getCognome()
 								<< ": " << candidati->at(c).getNumVoti() << " voti" << endl;
+
+						//aggiorno preferenze del candidato trovato all'interno della lista a cui appartiene
+						string lista = candidati->at(c).getLista(); //ottengo il nome della lista del candidato
+						vector <ListaElettorale> *liste = schedeVotoRisultato->at(i).getPointerListeElettorali();
+						for (uint l = 0; l<liste->size(); l++){
+							if(lista ==(liste->at(l).getNome())){
+								//trovata lista a cui il candidato appartiene
+								vector <Candidato> *candidati = liste->at(l).getPointerCandidati();
+								for (uint c = 0; c < candidati->size();c++){
+									if(matricola == candidati->at(c).getMatricola()){
+										//trovato candidato all'interno della lista
+										candidati->at(c).incVoti();
+										break;
+									}//fine if candidato di lista
+
+								}
+								break;
+							}//fine if lista trovata
+
+						}
 						break;
-					}
+					}//fine if matricola trovata
 
 				}
+
+
 			}
-		}
+			break;
+		}//fine if scheda trovata
 	}
 
 }
@@ -1111,7 +1224,7 @@ void UrnaVirtuale::initConnessioneUrnaDB() {
 	model->connectToUrnaDB();
 }
 
-vector<SchedaVoto> UrnaVirtuale::parsingSchedeXML(vector<string> &schede){
+vector<SchedaVoto> UrnaVirtuale::parsingSchedeVotoXML(vector<string> &schede){
 	vector<SchedaVoto> schedeVoto;
 
 	for(uint i = 0; i< schede.size(); i++){
@@ -1241,3 +1354,153 @@ vector<SchedaVoto> UrnaVirtuale::parsingSchedeXML(vector<string> &schede){
 
 	return schedeVoto;
 }
+
+void UrnaVirtuale::createScrutinioXML(vector<RisultatiSeggio> & risultatiSeggi,
+		XMLDocument * xmlDoc) {
+	XMLNode * pRoot = xmlDoc->NewElement("Scrutinio");
+	xmlDoc->InsertFirstChild(pRoot);
+
+	XMLNode * pRisultati = xmlDoc->NewElement("risultati");
+	pRoot->InsertEndChild(pRisultati);
+
+	for (uint i = 0; i < risultatiSeggi.size();i++){
+		RisultatiSeggio rs = risultatiSeggi.at(i);
+
+		vector<SchedaVoto> schedeRisultato = rs.getSchedeVotoRisultato();
+
+		XMLNode *pRisultatoSeggio = xmlDoc->NewElement("risultatoSeggio");
+		pRisultati->InsertEndChild(pRisultatoSeggio);
+
+		XMLElement *idSeggioElement = xmlDoc->NewElement("idSeggio");
+		uint idSeggio = rs.getIdSeggio();
+		idSeggioElement->SetText(idSeggio);
+		pRisultatoSeggio->InsertEndChild(idSeggioElement);
+
+		XMLNode *pSchedeRisultato = xmlDoc->NewElement("schede");
+		pRisultatoSeggio->InsertEndChild(pSchedeRisultato);
+
+		XMLNode * pSchedaRisultato = xmlDoc->NewElement("schedaRisultato");
+		pSchedeRisultato->InsertEndChild(pSchedaRisultato);
+
+		for(uint i= 0; i< schedeRisultato.size();i++){
+			SchedaVoto scheda = schedeRisultato.at(i);
+
+			XMLElement * pElement;
+
+			uint id = scheda.getId();
+			pElement = xmlDoc->NewElement("id");
+			pElement->SetText(id);
+			pSchedaRisultato->InsertEndChild(pElement);
+
+			uint idProceduraVoto = scheda.getIdProceduraVoto();
+			pElement = xmlDoc->NewElement("idProcedura");
+			pElement->SetText(idProceduraVoto);
+			pSchedaRisultato->InsertEndChild(pElement);
+
+			uint tipoElezione = scheda.getTipoElezione();
+			pElement = xmlDoc->NewElement("tipologiaElezione");
+			pElement->SetText(tipoElezione);
+			pSchedaRisultato->InsertEndChild(pElement);
+
+			uint numPref = scheda.getNumPreferenze();
+			pElement = xmlDoc->NewElement("numeroPreferenze");
+			pElement->SetText(numPref);
+			pSchedaRisultato->InsertEndChild(pElement);
+
+			vector <ListaElettorale> listeInserite = scheda.getListeElettorali();
+			XMLNode * pListe = xmlDoc->NewElement("liste");
+			pSchedaRisultato->InsertEndChild(pListe);
+			//unsigned int idCandidato = 0;
+			unsigned int idLista = 0;
+			for (uint indexListe = 0; indexListe < listeInserite.size(); indexListe++){
+				idLista++;
+				XMLElement * pNuovaLista = xmlDoc->NewElement("lista");
+				pNuovaLista->SetAttribute("id",idLista);
+				pNuovaLista->SetAttribute("nome",listeInserite.at(indexListe).getNome().c_str());
+
+				pListe->InsertEndChild(pNuovaLista);
+				vector <Candidato> candidatiLista =  listeInserite.at(indexListe).getCandidati();
+				for (uint indexCandidati = 0; indexCandidati < candidatiLista.size(); indexCandidati++){
+
+					XMLElement *pCandidato = xmlDoc->NewElement("candidato");
+					uint numVoti = candidatiLista.at(indexCandidati).getNumVoti();
+					pCandidato->SetAttribute("votiRicevuti",numVoti);
+					pNuovaLista->InsertEndChild(pCandidato);
+
+					XMLElement * pMatr = xmlDoc->NewElement("matricola");
+					pMatr->SetText(candidatiLista.at(indexCandidati).getMatricola().c_str());
+					pCandidato->InsertEndChild(pMatr);
+
+					XMLElement * pNome = xmlDoc->NewElement("nome");
+					pNome->SetText(candidatiLista.at(indexCandidati).getNome().c_str());
+					pCandidato->InsertEndChild(pNome);
+
+					XMLElement * pCognome = xmlDoc->NewElement("cognome");
+					pCognome->SetText(candidatiLista.at(indexCandidati).getCognome().c_str());
+					pCandidato->InsertEndChild(pCognome);
+
+					XMLElement * pLN = xmlDoc->NewElement("luogoNascita");
+					pLN->SetText(candidatiLista.at(indexCandidati).getLuogoNascita().c_str());
+					pCandidato->InsertEndChild(pLN);
+
+					XMLElement * pDN = xmlDoc->NewElement("dataNascita");
+					pDN->SetText(candidatiLista.at(indexCandidati).getDataNascita().c_str());
+					pCandidato->InsertEndChild(pDN);
+
+
+				}
+			}
+
+
+		}
+	}
+}
+
+int UrnaVirtuale::verifySignString_RP(string data, string encodedSignature,
+		string encodedPublicKey) {
+
+	int success = 1; //non verificato
+	string signature;
+	StringSource(encodedSignature,true,
+			new HexDecoder(
+					new StringSink(signature)
+			)//HexDecoder
+	);//StringSource
+	cout << "Signature encoded: " << encodedSignature << endl;
+	cout << "Signature decoded: " << signature << endl;
+
+	string decodedPublicKey;
+	StringSource(encodedPublicKey,true,
+			new HexDecoder(
+					new StringSink(decodedPublicKey)
+			)//HexDecoder
+	);//StringSource
+
+	////------ verifica signature
+	StringSource ss(decodedPublicKey,true /*pumpAll*/);
+	RSA::PublicKey publicKey;
+	publicKey.Load(ss);
+
+	cout << "PublicKey encoded: " << encodedPublicKey << endl;
+	////////////////////////////////////////////////
+	try{
+		// Verify and Recover
+		RSASS<PSS, SHA256>::Verifier verifier(publicKey);
+		cout << "Data to sign|signature: " << data + signature << endl;
+		StringSource(data + signature, true,
+				new SignatureVerificationFilter(verifier, NULL,
+						SignatureVerificationFilter::THROW_EXCEPTION) // SignatureVerificationFilter
+		);// StringSource
+
+		cout << "Verified signature on message" << endl;
+		success = 0; //verificato
+	} // try
+
+	catch (CryptoPP::Exception& e) {
+		cerr << "Error: " << e.what() << endl;
+		success = 1;
+	}
+	return success;
+}
+
+

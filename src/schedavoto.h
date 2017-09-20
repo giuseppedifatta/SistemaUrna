@@ -70,6 +70,7 @@ public:
     void removeCandidatiFromScheda(vector<Candidato> &candidatiDaRimuovere);
 	const std::vector<Candidato>& getCandidati() const;
 	vector<Candidato>* getPointerCandidati();
+	vector<ListaElettorale> * getPointerListeElettorali();
 private:
     unsigned int idProceduraVoto;
     unsigned int id;

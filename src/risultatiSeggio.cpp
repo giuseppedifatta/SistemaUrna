@@ -40,3 +40,7 @@ void RisultatiSeggio::setSchedeVotoRisultato(
 		const vector<SchedaVoto>& schedeVotoRisultato) {
 	this->schedeVotoRisultato = schedeVotoRisultato;
 }
+
+const vector<SchedaVoto>& RisultatiSeggio::getSchedeVotoRisultato() const {
+	return schedeVotoRisultato;
+}

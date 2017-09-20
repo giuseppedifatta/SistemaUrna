@@ -15,7 +15,7 @@ public:
     bool removeCandidato(string matrCandidato);
 
     vector<Candidato> getCandidati() const;
-
+    vector<Candidato> *getPointerCandidati();
 private:
     string nome;
     vector <Candidato> candidati;
