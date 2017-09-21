@@ -614,8 +614,6 @@ bool UrnaVirtuale::doScrutinio(uint idProcedura, string derivedKey) {
 	string decodedPrivateKeyRP = AESdecryptStdString(encryptedPrivateKeyRP,key,iv);
 	cout << "chiave privata RP decifrata: " << decodedPrivateKeyRP<< endl;
 
-
-
 	StringSource ss(decodedPrivateKeyRP,true /*pumpAll*/);
 	RSA::PrivateKey privateKeyRP;
 	privateKeyRP.Load(ss);
@@ -752,7 +750,7 @@ bool UrnaVirtuale::doScrutinio(uint idProcedura, string derivedKey) {
 	string encodedSignatureRP = this->signString_RP(scrutinioXML+to_string(idProcedura),privateKeyRP);
 	cout << "Firma di RP al file di scrutinio+idProceduraAsString: " << encodedSignatureRP << endl;
 
-	//model->storeScrutinio(scrutinioXML,idProcedura, encodedSignatureRP);
+	model->storeScrutinio(scrutinioXML,idProcedura, encodedSignatureRP);
 	return true;
 }
 

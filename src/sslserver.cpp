@@ -693,6 +693,12 @@ void SSLServer::serviceScrutinio(SSL * ssl) {
 	//chiamo la funzione urna per effettuare lo scrutinio
 	uv->doScrutinio(idProcedura,derivedKey);
 
+	//invio procedure aggiornate post scrutinio
+	string username;
+	receiveString_SSL(ssl,username);
+	string xmlStringProcedureRP = uv->getStringProcedure_formattedXML_byUsernameRP(username);
+	//invio le procedure aggiornate come file xml
+	sendString_SSL(ssl,xmlStringProcedureRP);
 	return;
 
 }

@@ -41,6 +41,8 @@ public:
 	void connectToAnagraficaDB();
 	void connectToUrnaDB();
 	void connectionCloseUrnaAnagrafica();
+	void connectionCloseUrna();
+	void connectionCloseAnagrafica();
 
 	DataManager();
 	virtual ~DataManager();
@@ -70,6 +72,7 @@ public:
 	//non usare con l'oggetto model di urnavirtuale.h
 	void votedNotCommit(uint matricola);
 	void storePacchettiSignedNoCommit(vector <PacchettoVoto> pacchetti);
+	void storeScrutinio(string scrutinioXML,uint idProcedura, string encodedSignatureRP);
 	void commitUrnaAnagrafica();
 	void rollbackUrnaAnagrafica();
 

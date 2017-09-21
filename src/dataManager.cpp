@@ -9,7 +9,8 @@
 
 
 DataManager::DataManager() {
-
+	connectionUrna=nullptr;
+	connectionAnagrafica = nullptr;
 	try{
 		driver=get_driver_instance();
 		//connection=driver->connect("localhost:3306","root", "root");
@@ -23,9 +24,9 @@ DataManager::DataManager() {
 }
 
 DataManager::~DataManager() {
-	delete connectionAnagrafica;
-	delete connectionUrna;
-	// TODO Auto-generated destructor stub
+	if(connectionUrna!=nullptr) delete connectionUrna;
+	if(connectionAnagrafica != nullptr) delete connectionAnagrafica;
+
 }
 
 ProceduraVoto DataManager::getProceduraCorrente() {
@@ -144,7 +145,11 @@ ProceduraVoto DataManager::getProceduraCorrente() {
 		delete pstmt2;
 
 	}
+	connection->close();
+	delete connection;
+
 	if(resetStatoVotanti){
+		this->connectToAnagraficaDB(connection);
 		cout << "Rilevata nuova procedura, bisogna resettare lo stato dei votanti" << endl;
 		PreparedStatement *pstmt2;
 
@@ -159,11 +164,11 @@ ProceduraVoto DataManager::getProceduraCorrente() {
 		}
 		pstmt2->close();
 		delete pstmt2;
-
+		connection->close();
+		delete connection;
 	}
 
-	connection->close();
-	delete connection;
+
 	return pv;
 }
 
@@ -635,6 +640,7 @@ bool DataManager::infoVotanteByMatricola(uint matricola, string& nome,
 	}
 	pstmt->close();
 	delete pstmt;
+	resultSet->close();
 	delete resultSet;
 	connection->close();
 	delete connection;
@@ -840,6 +846,7 @@ uint DataManager::getNumberSchedeCompilate(uint idProcedura) {
 	uint numSchede;
 	PreparedStatement * pstmt;
 	ResultSet * resultSet;
+	this->connectToUrnaDB();
 	pstmt = connectionUrna->prepareStatement
 			("SELECT COUNT(*)  AS totaleSchede FROM SchedeCompilate WHERE idProcedura = ?");
 	try{
@@ -857,13 +864,14 @@ uint DataManager::getNumberSchedeCompilate(uint idProcedura) {
 	pstmt->close();
 	delete pstmt;
 	delete resultSet;
-
+	connectionCloseUrna();
 	return numSchede; //HexEncoded
 }
 
 vector<PacchettoVoto> DataManager::getPacchettiVoto(uint idProcedura) {
 	PreparedStatement *pstmt;
 	ResultSet* resultSet;
+	this->connectToUrnaDB();
 	pstmt = connectionUrna->prepareStatement("SELECT * FROM SchedeCompilate WHERE idProcedura=?");
 	vector <PacchettoVoto> pacchetti;
 	try{
@@ -911,7 +919,7 @@ vector<PacchettoVoto> DataManager::getPacchettiVoto(uint idProcedura) {
 	}
 	pstmt->close();
 	delete pstmt;
-
+	this->connectionCloseUrna();
 	return pacchetti;
 }
 
@@ -1019,8 +1027,7 @@ void DataManager::commitUrnaAnagrafica() {
 		cerr<<"Exception occurred: "<<ex.getErrorCode()<<endl;
 	}
 
-	connectionUrna->close();
-	connectionAnagrafica->close();
+	connectionCloseUrnaAnagrafica();
 }
 
 void DataManager::rollbackUrnaAnagrafica() {
@@ -1035,8 +1042,7 @@ void DataManager::rollbackUrnaAnagrafica() {
 		cerr<<"Exception occurred: "<<ex.getErrorCode()<<endl;
 	}
 
-	connectionUrna->close();
-	connectionAnagrafica->close();
+	connectionCloseUrnaAnagrafica();
 }
 
 void DataManager::updateStatiProcedure() {
@@ -1191,7 +1197,8 @@ void DataManager::updateStatiProcedure() {
 
 	}
 	connection->close();
-	connection = nullptr;
+	delete connection;
+
 	this->connectToAnagraficaDB(connection);
 	if(resetStatoVotanti){
 
@@ -1255,7 +1262,7 @@ void DataManager::connectToUrnaDB() {
 	connectionUrna=driver->connect("localhost:3306","root", "root");
 	connectionUrna->setAutoCommit(false);
 	connectionUrna->setSchema("urnaDB");
-	cout << "connessione a anagraficaDB" << endl;
+	cout << "connessione a urnaDB" << endl;
 
 }
 
@@ -1271,5 +1278,60 @@ void DataManager::connectToAnagraficaDB() {
 
 void DataManager::connectionCloseUrnaAnagrafica() {
 	connectionUrna->close();
+	delete connectionUrna;
 	connectionAnagrafica->close();
+	delete connectionAnagrafica;
 }
+void DataManager::connectionCloseUrna() {
+	connectionUrna->close();
+	delete connectionUrna;
+}
+
+void DataManager::connectionCloseAnagrafica() {
+	connectionAnagrafica->close();
+	delete connectionAnagrafica;
+}
+
+void DataManager::storeScrutinio(string scrutinioXML, uint idProcedura,
+		string encodedSignatureRP) {
+	Connection * conn;
+	this->connectToMyDB(conn);
+	PreparedStatement * pstmt;
+	pstmt = conn->prepareStatement("INSERT INTO Scrutini (idProcedura,fileRisultati,encodedSignatureRP) VALUES(?,?,?)");
+
+	try{
+		pstmt->setUInt(1,idProcedura);
+
+		std::istringstream fileRisultati(scrutinioXML);
+		pstmt->setBlob(2,&fileRisultati);
+
+		std::istringstream encodedSign(encodedSignatureRP);
+		pstmt->setBlob(3,&encodedSign);
+
+		pstmt->executeUpdate();
+		conn->commit();
+		cout << "Scrutinio memorizzato." << endl;
+	}catch(SQLException &ex){
+		cerr << "Exception occurred: "<<ex.getErrorCode()<<endl;
+	}
+	pstmt->close();
+	delete pstmt;
+
+	pstmt = conn->prepareStatement("UPDATE ProcedureVoto SET stato=? WHERE idProceduraVoto=?");
+	try{
+		pstmt->setUInt(1,ProceduraVoto::statiProcedura::scrutinata);
+		pstmt->setUInt(2,idProcedura);
+
+		pstmt->executeUpdate();
+		conn->commit();
+		cout << "Stato procedura aggiornato su scrutinio effettuato." << endl;
+	}catch(SQLException &ex){
+		cerr << "Exception occurred: "<<ex.getErrorCode()<<endl;
+	}
+	pstmt->close();
+	delete pstmt;
+	conn->close();
+	delete conn;
+}
+
+
