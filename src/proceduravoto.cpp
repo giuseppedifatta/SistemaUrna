@@ -215,12 +215,17 @@ void ProceduraVoto::setStato(const uint &stato){
 	case ProceduraVoto::statiProcedura::conclusa:
 		this->stato =  ProceduraVoto::statiProcedura::conclusa;
 		break;
+	case ProceduraVoto::statiProcedura::scrutinata:
+		this->stato =  ProceduraVoto::statiProcedura::scrutinata;
+		break;
 	case ProceduraVoto::statiProcedura::da_eliminare:
 		this->stato =  ProceduraVoto::statiProcedura::da_eliminare;
 		break;
+
 	default:
 		this->stato =  ProceduraVoto::statiProcedura::undefined;
 		break;
+
 
 	}
 
