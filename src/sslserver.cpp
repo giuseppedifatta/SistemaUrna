@@ -95,24 +95,34 @@ void SSLServer::startListen() {
 	int client_sock = accept(this->listen_sock, (struct sockaddr*) &client_addr,
 			&len);
 
+	//	struct sockaddr_storage addr;
+	//	socklen_t len2;
+	//	getpeername(client_sock, (struct sockaddr*)&addr, &len2);
+	//	char ipstr[INET_ADDRSTRLEN];
+	//	struct sockaddr_in *s = (struct sockaddr_in *)&addr;
+	//	int port = ntohs(s->sin_port);
+	//	inet_ntop(AF_INET, &s->sin_addr, ipstr, sizeof ipstr);
+	//	printf("Peer IP address: %s\n", ipstr);
+	//	printf("Peer port      : %d\n", port);
+
 	if (client_sock < 0) {
 		perror("Unable to accept");
 		exit(EXIT_FAILURE);
 	} else {
-		char ipAddress[INET_ADDRSTRLEN];
-		inet_ntop(AF_INET, &(client_addr.sin_addr), ipAddress, INET_ADDRSTRLEN);
-		ipClient = ipAddress;
+		//		char ipAddress[INET_ADDRSTRLEN];
+		//		inet_ntop(AF_INET, &(client_addr.sin_addr.s_addr), ipAddress, INET_ADDRSTRLEN);
+		//		ipClient = ipAddress;
 		//seggioChiamante->mutex_stdout.lock();
 		cout << "ServerUrna: Un client ha iniziato la connessione su una socket con fd:"	<< client_sock << endl;
 		cout << "ServerUrna: Client's Port assegnata: "
-				<< ntohs(client_addr.sin_port)  << "; il client ha indirizzo: " << ipClient<< endl;
+				<< ntohs(client_addr.sin_port)  /*<< "; il client ha indirizzo: " << ipClient*/<< endl;
 
 	}
 
 	if (!(this->stopServer)) {
 
 		//se non è stata settata l'interruzione del server, lancia il thread per servire la richiesta
-		thread t(&SSLServer::Servlet, this, client_sock, ipClient);
+		thread t(&SSLServer::Servlet, this, client_sock/*, ipClient*/);
 		t.detach();
 		//seggioChiamante->mutex_stdout.lock();
 		cout << "ServerUrna: start a thread..." << endl;
@@ -136,7 +146,7 @@ void SSLServer::startListen() {
 
 }
 
-void SSLServer::Servlet(int client_sock_fd, string ipClient) {/* threadable */
+void SSLServer::Servlet(int client_sock_fd/*, string ipClient*/) {/* threadable */
 	//seggioChiamante->mutex_stdout.lock();
 	cout << "ServizioUrnaThread: Servlet: inizio servlet" << endl;
 	//seggioChiamante->mutex_stdout.unlock();
@@ -177,11 +187,15 @@ void SSLServer::Servlet(int client_sock_fd, string ipClient) {/* threadable */
 			cout << "Servizio: " << servizio << endl;
 			switch (servizio) {
 
-			case servizi::attivazionePV:
-				this->serviceAttivazionePV(ssl);
-				break;
-			case servizi::attivazioneSeggio:
-				this->serviceAttivazioneSeggio(ssl);
+			case servizi::attivazionePV:{
+				string ipClient;
+				receiveString_SSL(ssl,ipClient);
+				this->serviceAttivazionePV(ssl,ipClient);
+				break;}
+			case servizi::attivazioneSeggio:{
+				string ipClient;
+				receiveString_SSL(ssl,ipClient);
+				this->serviceAttivazioneSeggio(ssl,ipClient);
 				break;
 				//			case servizi::infoProcedura:
 				//				this->serviceInfoProcedura(ssl);
@@ -189,33 +203,56 @@ void SSLServer::Servlet(int client_sock_fd, string ipClient) {/* threadable */
 				//			case servizi::infoSessione:
 				//				this->serviceInfoSessione(ssl);
 				//				break;
-			case servizi::risultatiVoto:
-				this->serviceRisultatiVoto(ssl);
+			}
+			case servizi::risultatiVoto:{
+				string ipClient;
+				receiveString_SSL(ssl,ipClient);
+				this->serviceRisultatiVoto(ssl,ipClient);
 				break;
-			case servizi::storeSchedeCompilate:
+			}
+			case servizi::storeSchedeCompilate:{
+				string ipClient;
+				receiveString_SSL(ssl,ipClient);
 				this->serviceStoreSchedeCompilate(ssl,ipClient);
 				break;
-			case servizi::scrutinio:
-				this->serviceScrutinio(ssl);
+			}
+			case servizi::scrutinio:{
+				string ipClient;
+				receiveString_SSL(ssl,ipClient);
+				this->serviceScrutinio(ssl,ipClient);
 				break;
-			case servizi::autenticazioneRP:
-				this->serviceAutenticazioneRP(ssl);
+			}
+			case servizi::autenticazioneRP:{
+				string ipClient;
+				receiveString_SSL(ssl,ipClient);
+				this->serviceAutenticazioneRP(ssl,ipClient);
 				break;
-			case servizi::tryVoteElettore:
-				this->serviceTryVoteElettore(ssl);
+			}
+			case servizi::tryVoteElettore:{
+				string ipClient;
+				receiveString_SSL(ssl,ipClient);
+				this->serviceTryVoteElettore(ssl,ipClient);
 				break;
-			case servizi::infoMatricola:
-				this->serviceInfoMatricola(ssl);
+			}
+			case servizi::infoMatricola:{
+				string ipClient;
+				receiveString_SSL(ssl,ipClient);
+				this->serviceInfoMatricola(ssl,ipClient);
 				break;
 				//			case servizi::setMatricolaVoted:
 				//				this->serviceSetMatricolaVoted(ssl);
 				//				break;
-			case servizi::checkConnection:
-				this->serviceCheckConnection(ssl);
-				break;
-			case servizi::resetMatricolaStatoVoto:
-				this->serviceResetMatricolaStatoVoto(ssl);
-				break;
+			}
+			case servizi::checkConnection:{
+				string ipClient;
+				receiveString_SSL(ssl,ipClient);
+				this->serviceCheckConnection(ssl,ipClient);
+				break;}
+			case servizi::resetMatricolaStatoVoto:{
+				string ipClient;
+				receiveString_SSL(ssl,ipClient);
+				this->serviceResetMatricolaStatoVoto(ssl,ipClient);
+				break;}
 			default:
 				cerr << "ServizioUrnaThread: Servizio non disponibile" << endl;
 			}
@@ -244,6 +281,7 @@ void SSLServer::serviceStoreSchedeCompilate(SSL * ssl, string ipClient){
 			<< servizi::storeSchedeCompilate << endl;
 
 	uv->mutex_ricezione_pacchetti.lock();
+
 	cout << "postazione con IP: " << ipClient << " ha bloccato il mutex: mutex_ricezione_pacchetti" << endl;
 
 	//------sezione critica
@@ -402,7 +440,7 @@ void SSLServer::serviceStoreSchedeCompilate(SSL * ssl, string ipClient){
 	return;
 
 }
-void SSLServer::serviceAttivazionePV(SSL * ssl) {
+void SSLServer::serviceAttivazionePV(SSL * ssl, string ipClient) {
 	//seggioChiamante->mutex_stdout.lock();
 	cout << "ServizioUrnaThread: service started: " << servizi::attivazionePV << endl;
 	//seggioChiamante->mutex_stdout.unlock();
@@ -521,7 +559,7 @@ void SSLServer::serviceAttivazionePV(SSL * ssl) {
 
 }
 
-void SSLServer::serviceAttivazioneSeggio(SSL * ssl) {
+void SSLServer::serviceAttivazioneSeggio(SSL * ssl, string ipClient) {
 	//seggioChiamante->mutex_stdout.lock();
 	cout << "ServizioUrnaThread: service started: " << servizi::attivazioneSeggio << endl;
 	//seggioChiamante->mutex_stdout.unlock();
@@ -538,6 +576,8 @@ void SSLServer::serviceAttivazioneSeggio(SSL * ssl) {
 	//uvChiamante->mutex_stdout.lock();
 	cout << "ServizioUrnaThread: invio idProcedura: " << charIdProcedura << endl;
 	//uvChiamante->mutex_stdout.unlock();
+
+	//invio idProcedura, lto postazione verrà usato come dato su cui calcolare il MAC
 	SSL_write(ssl,charIdProcedura,strlen(charIdProcedura));
 
 	if(idProceduraCorrente == 0){
@@ -546,7 +586,7 @@ void SSLServer::serviceAttivazioneSeggio(SSL * ssl) {
 	}
 
 
-	//1. ricezione hmac dell'idProcedura generato con la chiave di sessione relativo alla postazione che ha richiesto attivazione
+	//1. ricezione hmac dell'idProcedura generato con la chiave di sessione relativo alla postazione client che ha richiesto l'attivazione
 
 	string macReceived;
 	char mac_buffer[512];
@@ -564,22 +604,27 @@ void SSLServer::serviceAttivazioneSeggio(SSL * ssl) {
 	//chiave di sessione condivisa tra la postazione seggio da attivare e l'urna
 
 	//TODO 2. ricavare sessionKey per la postazione seggio con cui si sta comunicando
+	string encodedSessionKey = uv->clientSessionKey(ipClient);
+	//string encodedSessionKey = "11A47EC4465DD95FCD393075E7D3C4EB";
+	int success = 1; //1 rappresenta insuccesso dell'operazione
+	if (encodedSessionKey != ""){
+		cout << "Session key: " << encodedSessionKey << endl;
 
-	string encodedSessionKey = "11A47EC4465DD95FCD393075E7D3C4EB";
-	cout << "Session key: " << encodedSessionKey << endl;
+		string plain;
+		plain = strIdProcedura;
+		//3. verifica dell'hmac
 
-	string plain;
-	plain = strIdProcedura;
+		success = uv->verifyMAC(encodedSessionKey,plain,macReceived);
 
 
-	//3. verifica dell'hmac
+	}
+
+
 	const char * successValue;
-
-	int success = uv->verifyMAC(encodedSessionKey,plain,macReceived);
-
 	string str1 = std::to_string(success);
 	successValue = str1.c_str();
 	cout << "ServizioUrnaThread: esito verifica del MAC: " << successValue << endl;
+
 
 	//4. comunica esito della verifica del mac
 	SSL_write(ssl,successValue,strlen(successValue));
@@ -629,6 +674,9 @@ void SSLServer::serviceAttivazioneSeggio(SSL * ssl) {
 
 		//invio delle 5 username associate agli HT
 
+		//invio delle 5 password relative agli HT
+
+		//inviate informazioni degli HT
 
 	}
 
@@ -637,7 +685,7 @@ void SSLServer::serviceAttivazioneSeggio(SSL * ssl) {
 
 }
 
-//void SSLServer::serviceInfoProcedura(SSL * ssl) {
+//void SSLServer::serviceInfoProcedura(SSL * ssl, string ipClient) {
 //	//seggioChiamante->mutex_stdout.lock();
 //	cout << "ServizioUrnaThread: service started: " << servizi::infoProcedura << endl;
 //	//seggioChiamante->mutex_stdout.unlock();
@@ -657,7 +705,7 @@ void SSLServer::serviceAttivazioneSeggio(SSL * ssl) {
 //
 //}
 
-void SSLServer::serviceRisultatiVoto(SSL *ssl) {
+void SSLServer::serviceRisultatiVoto(SSL *ssl, string ipClient) {
 	//seggioChiamante->mutex_stdout.lock();
 	cout << "ServizioUrnaThread: service started: " << servizi::risultatiVoto << endl;
 	//seggioChiamante->mutex_stdout.unlock();
@@ -667,7 +715,7 @@ void SSLServer::serviceRisultatiVoto(SSL *ssl) {
 
 }
 
-void SSLServer::serviceScrutinio(SSL * ssl) {
+void SSLServer::serviceScrutinio(SSL * ssl, string ipClient) {
 	//seggioChiamante->mutex_stdout.lock();
 	cout << "ServizioUrnaThread: service started: " << servizi::scrutinio << endl;
 	//seggioChiamante->mutex_stdout.unlock();
@@ -703,7 +751,7 @@ void SSLServer::serviceScrutinio(SSL * ssl) {
 
 }
 
-void SSLServer::serviceTryVoteElettore(SSL * ssl) {
+void SSLServer::serviceTryVoteElettore(SSL * ssl, string ipClient) {
 	//seggioChiamante->mutex_stdout.lock();
 	cout << "ServizioUrnaThread: service started: " << servizi::tryVoteElettore << endl;
 	//seggioChiamante->mutex_stdout.unlock();
@@ -730,7 +778,7 @@ void SSLServer::serviceTryVoteElettore(SSL * ssl) {
 
 
 
-void SSLServer::serviceInfoMatricola(SSL* ssl) {
+void SSLServer::serviceInfoMatricola(SSL* ssl, string ipClient) {
 	//seggioChiamante->mutex_stdout.lock();
 	cout << "ServizioUrnaThread: service started: " << servizi::infoMatricola << endl;
 	//seggioChiamante->mutex_stdout.unlock();
@@ -793,12 +841,12 @@ void SSLServer::serviceInfoMatricola(SSL* ssl) {
 //	}
 //}
 
-void SSLServer::serviceCheckConnection(SSL* ssl) {
+void SSLServer::serviceCheckConnection(SSL* ssl, string ipClient) {
 	//seggioChiamante->mutex_stdout.lock();
 	cout << "ServizioUrnaThread: service started: " << servizi::checkConnection << endl;
 	//seggioChiamante->mutex_stdout.unlock();
 }
-void SSLServer::serviceResetMatricolaStatoVoto(SSL* ssl) {
+void SSLServer::serviceResetMatricolaStatoVoto(SSL* ssl, string ipClient) {
 	//seggioChiamante->mutex_stdout.lock();
 	cout << "ServizioUrnaThread: service started: " << servizi::resetMatricolaStatoVoto << endl;
 	//seggioChiamante->mutex_stdout.unlock();
@@ -853,7 +901,7 @@ void SSLServer::sendString_SSL(SSL* ssl, string s) {
 	SSL_write(ssl, s.c_str(), length);
 }
 
-void SSLServer::serviceAutenticazioneRP(SSL * ssl) {
+void SSLServer::serviceAutenticazioneRP(SSL * ssl, string ipClient) {
 	//seggioChiamante->mutex_stdout.lock();
 	cout << "ServizioUrnaThread: service started: " << servizi::autenticazioneRP << endl;
 	//seggioChiamante->mutex_stdout.unlock();

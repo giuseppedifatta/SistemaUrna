@@ -1353,6 +1353,12 @@ vector<SchedaVoto> UrnaVirtuale::parsingSchedeVotoXML(vector<string> &schede){
 	return schedeVoto;
 }
 
+string UrnaVirtuale::clientSessionKey(string ipPostazione) {
+	uint idSessione = getIdSessioneCorrenteSuccessiva();
+
+	return model->getSessionKey_Postazione_Urna(ipPostazione, idSessione);
+}
+
 void UrnaVirtuale::createScrutinioXML(vector<RisultatiSeggio> & risultatiSeggi,
 		XMLDocument * xmlDoc) {
 	XMLNode * pRoot = xmlDoc->NewElement("Scrutinio");

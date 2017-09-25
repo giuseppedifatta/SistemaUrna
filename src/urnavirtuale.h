@@ -68,6 +68,8 @@ public:
 	uint useridByIdProcedura(uint idProcedura);
 	bool doScrutinio(uint idProcedura, string derivedKey);
 	uint numSchedeCompilate(uint idProcedura);
+	string clientSessionKey(string ipPostazione);
+
 	void initConnessioneUrnaDB();
 
 	const ProceduraVoto& getProceduraCorrente() const {

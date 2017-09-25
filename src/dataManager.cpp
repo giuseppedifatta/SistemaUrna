@@ -301,10 +301,74 @@ vector <string> DataManager::getSchedeVoto(uint idProceduraCorrente) {
 
 string DataManager::getSessionKey_Postazione_Urna(string IP_Postazione,
 		uint idSessioneCorrente) {
+
+	string sessionKey;
+	bool ipPostazioneExist = true;
+
 	Connection * connection;
 	this->connectToMyDB(connection);
+
+	PreparedStatement *pstmt;
+	ResultSet * resultSet;
+	uint idPostazione;
+	pstmt = connection->prepareStatement("SELECT idPostazione FROM Postazioni WHERE ipPostazione = ?");
+	try{
+		pstmt->setString(1,IP_Postazione);
+		resultSet = pstmt->executeQuery();
+
+
+		if(resultSet->next()){
+			idPostazione = resultSet->getUInt("idPostazione");
+		}
+		else{
+			cerr << "La postazione con IP: " << IP_Postazione << " non esiste" << endl;
+			sessionKey = "";
+			ipPostazioneExist = false;
+		}
+	}catch(SQLException &ex){
+		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
+	}
+	pstmt->close();
+	resultSet->close();
+	delete pstmt;
+	delete resultSet;
+
+	//se l'ip postazione non esiste, chiudiamo la connessione al db e restituiamo una chiave di sessione vuota;
+	if(!ipPostazioneExist){
+		connection->close();
+		delete connection;
+		return sessionKey;
+	}
+
+	pstmt = connection->prepareStatement("SELECT sharedKey FROM ChiaviSessione WHERE idSessione = ? AND idPostazione = ?");
+
+	try{
+		pstmt->setUInt(1,idSessioneCorrente);
+		pstmt->setUInt(2,idPostazione);
+		resultSet = pstmt->executeQuery();
+
+
+		if(resultSet->next()){
+			sessionKey = resultSet->getString("sharedKey");
+			cout << "Chiave di sessione per la postazione con IP " << IP_Postazione << ": " << sessionKey << endl;
+		}
+		else{
+			cerr << "Chiave di sessione non presente per la postazione con IP: " << IP_Postazione << endl;
+			sessionKey = "";
+		}
+	}catch(SQLException &ex){
+		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
+	}
+
+	pstmt->close();
+	resultSet->close();
+	delete pstmt;
+	delete resultSet;
+
 	connection->close();
 	delete connection;
+
+	return sessionKey;
 }
 
 
