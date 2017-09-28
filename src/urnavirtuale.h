@@ -50,7 +50,7 @@ public:
 	bool checkScrutinioEseguito(uint idProcedura);
 
 	string getStringProcedure_formattedXML_byUsernameRP(string usernameRP);
-	uint tryVote(uint matricola,uint &ruolo);
+	uint tryVote(uint matricola,uint &idTipoVotante);
 	vector <string> getSchede();
 	string getPublicKeyRP(uint idProceduraCorrente);
 	int verifyMAC(string encodedSessionKey,string plain, string macEncoded);

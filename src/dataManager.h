@@ -57,7 +57,7 @@ public:
 	//bool storeVotoFirmato_U(string uniqueMAC, string encryptedSchedaCompilata, string encryptedKey,	string encryptedIV, uint nonce, string digestFirmato, uint idProceduraCorrente);
 	string getPublicKeyRP(uint idProcedura);
 	bool uniqueIDSchedaCompilata(string id);
-	uint tryLockAnagrafica(uint matricola, uint &ruolo);
+	uint tryLockAnagrafica(uint matricola, uint &idTipoVotante);
 	bool infoVotanteByMatricola(uint matricola, string &nome, string &cognome, uint &statoVoto);
 	//bool setVoted(uint matricola);
 	bool setNotVoted(uint matricola);
@@ -87,11 +87,6 @@ public:
 		alredyVoted,
 		notExist,
 		errorLocking
-	};
-	enum ruoloUni{
-		studente,
-		ricercatore,
-		professore
 	};
 private:
 	mutex mutex_anagrafica;

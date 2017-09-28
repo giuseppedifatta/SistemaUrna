@@ -809,9 +809,9 @@ void UrnaVirtuale::getPublicKeyFromCert(CryptoPP::BufferedTransformation & certi
 	x509Cert.SkipAll();
 }
 
-uint UrnaVirtuale::tryVote(uint matricola, uint &ruolo) {
+uint UrnaVirtuale::tryVote(uint matricola, uint &idTipoVotante) {
 
-	return model->tryLockAnagrafica(matricola,ruolo);
+	return model->tryLockAnagrafica(matricola,idTipoVotante);
 }
 
 

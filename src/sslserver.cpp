@@ -482,7 +482,8 @@ void SSLServer::serviceAttivazionePV(SSL * ssl, string ipClient) {
 
 	//TODO 2. ricavare sessionKey per la postazione con cui si sta comunicando
 
-	string encodedSessionKey = "11A47EC4465DD95FCD393075E7D3C4EB";
+	//string encodedSessionKey = "11A47EC4465DD95FCD393075E7D3C4EB";
+	string encodedSessionKey = uv->clientSessionKey(ipClient);
 	cout << "Session key: " << encodedSessionKey << endl;
 
 	string plain;
@@ -535,7 +536,10 @@ void SSLServer::serviceAttivazionePV(SSL * ssl, string ipClient) {
 			cout << "ServizioUrnaThread: bytes to send:" << num_bytes << endl;
 			SSL_write(ssl, num_bytes, strlen(num_bytes));
 			SSL_write(ssl, file_xml, length);
-			//manca calcolo e invio del mac delle schede di voto
+
+			//TODO manca calcolo e invio del mac dell'i-esima scheda di voto da inviare alla postazione di voto
+			string encodedMAC = uv->calcolaMAC(encodedSessionKey,schede.at(i));
+			sendString_SSL(ssl,encodedMAC);
 
 		}
 
@@ -760,17 +764,33 @@ void SSLServer::serviceTryVoteElettore(SSL * ssl, string ipClient) {
 	string matr;
 	receiveString_SSL(ssl,matr);
 
-	uint matricola = atoi(matr.c_str());
-	//prova a bloccare l'elettore per permettere la votazione esclusiva e univoca
-	uint ruolo;
-	uint esito = uv->tryVote(matricola,ruolo);
-	cout << "esito lock della matricola " << matricola <<": " << esito << endl;
-	//restituisci alla postazione seggio l'esito dell'operazione
-	sendString_SSL(ssl,std::to_string(esito));
+	//ricevi mac matricola
+	string encodedMAC;
+	receiveString_SSL(ssl,encodedMAC);
 
-	//se l'esito è positivo invia il ruolo della matricola che ha richiesto di votare
-	if(esito == uv->esitoLock::locked){
-		sendString_SSL(ssl,std::to_string(ruolo));
+	//verifica del MAC, autenticazione con postazione seggio
+	string encodedSessionKey = uv->clientSessionKey(ipClient);
+	int verified = uv->verifyMAC(encodedSessionKey,matr,encodedMAC);
+
+	uint esito;
+	if(verified == 0){
+		uint matricola = atoi(matr.c_str());
+		//prova a bloccare l'elettore per permettere la votazione esclusiva e univoca
+		uint idTipoVotante;
+		esito = uv->tryVote(matricola,idTipoVotante);
+		cout << "esito lock della matricola " << matricola <<": " << esito << endl;
+		//restituisci alla postazione seggio l'esito dell'operazione
+		sendString_SSL(ssl,std::to_string(esito));
+
+		//se l'esito è positivo invia il ruolo della matricola che ha richiesto di votare
+		if(esito == uv->esitoLock::locked){
+			sendString_SSL(ssl,std::to_string(idTipoVotante));
+		}
+	}
+	else{
+		//errore di autenticazione del messaggio
+		esito = uv->esitoLock::errorLocking;
+		sendString_SSL(ssl,std::to_string(esito));
 	}
 	return;
 
@@ -786,13 +806,24 @@ void SSLServer::serviceInfoMatricola(SSL* ssl, string ipClient) {
 	//ricevi matricola elettore attivo
 	string matr;
 	receiveString_SSL(ssl,matr);
-	uint matricola = atoi(matr.c_str());
+
+	//ricevi mac matricola
+	string encodedMAC;
+	receiveString_SSL(ssl,encodedMAC);
+
+	//verifica del MAC, autenticazione con postazione seggio
+	string encodedSessionKey = uv->clientSessionKey(ipClient);
+	int verified = uv->verifyMAC(encodedSessionKey,matr,encodedMAC);
+
+	bool matricolaPresente = false;
 	string nome, cognome;
 	uint statoVoto;
-	bool matricolaPresente;
-	matricolaPresente = uv->getInfoMatricola(matricola, nome, cognome,statoVoto);
 
-
+	if (verified == 0){ //messaggio di matricola autenticato
+		uint matricola = atoi(matr.c_str());
+		//verifico l'esistenza della matricola
+		matricolaPresente = uv->getInfoMatricola(matricola, nome, cognome,statoVoto);
+	}
 
 
 
@@ -854,19 +885,30 @@ void SSLServer::serviceResetMatricolaStatoVoto(SSL* ssl, string ipClient) {
 	//ricevi matricola da resettare
 	string matr;
 	receiveString_SSL(ssl,matr);
+
+	//ricevi mac matricola
+	string encodedMAC;
+	receiveString_SSL(ssl,encodedMAC);
+
+	//verifica del MAC, autenticazione con postazione seggio
+	string encodedSessionKey = uv->clientSessionKey(ipClient);
+	int verified = uv->verifyMAC(encodedSessionKey,matr,encodedMAC);
+
 	uint matricola = atoi(matr.c_str());
 
 
 	//richiedi all'urna di eseguire l'operazione
-	bool resetted = uv->resetMatricola(matricola);
-
+	bool resetted = false;
+	if(verified == 0){ //messaggio matricola autenticato
+	resetted = uv->resetMatricola(matricola);
+	}
 	//invia esito operazione
 	if(resetted){
 		//invio esito positivo
 		sendString_SSL(ssl,to_string(0));
 	}
 	else{
-		//invio esito negativo
+		//invio esito negativo; sempre negativo se messaggio matricola non autenticato
 		sendString_SSL(ssl,to_string(1));
 	}
 }

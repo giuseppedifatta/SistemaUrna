@@ -592,7 +592,7 @@ bool DataManager::uniqueIDSchedaCompilata(string idSchedaCompilata) {
 	return isUnique;
 }
 
-uint DataManager::tryLockAnagrafica(uint matricola, uint &ruolo) {
+uint DataManager::tryLockAnagrafica(uint matricola, uint &idTipoVotante) {
 	uint esito;
 	Connection * connection;
 	this->connectToAnagraficaDB(connection);
@@ -609,14 +609,8 @@ uint DataManager::tryLockAnagrafica(uint matricola, uint &ruolo) {
 
 		if(resultSet->next()){
 			uint stato = resultSet->getUInt("statoVoto");
-			string ruoloStr = resultSet->getString("ruoloUniversitario");
-			if(ruoloStr == "studente"){
-				ruolo = ruoloUni::studente;
-			}else if(ruoloStr == "ricercatore"){
-				ruolo = ruoloUni::ricercatore;
-			}else if(ruoloStr == "professore"){
-				ruolo = ruoloUni::professore;
-			}
+			idTipoVotante = resultSet->getUInt("idTipoVotante");
+
 			if(stato == statoVoto::non_espresso){
 				lock = true;
 			}
