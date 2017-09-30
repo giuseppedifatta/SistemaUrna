@@ -1359,6 +1359,12 @@ string UrnaVirtuale::clientSessionKey(string ipPostazione) {
 	return model->getSessionKey_Postazione_Urna(ipPostazione, idSessione);
 }
 
+
+
+string UrnaVirtuale::getSaltPrivateKeyRP(string usernameRP) {
+	return model->rpSalt(usernameRP);
+}
+
 void UrnaVirtuale::createScrutinioXML(vector<RisultatiSeggio> & risultatiSeggi,
 		XMLDocument * xmlDoc) {
 	XMLNode * pRoot = xmlDoc->NewElement("Scrutinio");

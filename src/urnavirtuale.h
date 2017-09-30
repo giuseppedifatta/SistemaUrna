@@ -65,10 +65,10 @@ public:
 	string hashPassword( string plainPass, string salt);
 	string procedureVotoRPtoXML(vector <ProceduraVoto> pvs);
 	uint idRPByUsername(string username);
-	uint useridByIdProcedura(uint idProcedura);
 	bool doScrutinio(uint idProcedura, string derivedKey);
 	uint numSchedeCompilate(uint idProcedura);
 	string clientSessionKey(string ipPostazione);
+	string getSaltPrivateKeyRP(string username);
 
 	void initConnessioneUrnaDB();
 

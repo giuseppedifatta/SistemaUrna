@@ -537,7 +537,7 @@ void SSLServer::serviceAttivazionePV(SSL * ssl, string ipClient) {
 			SSL_write(ssl, num_bytes, strlen(num_bytes));
 			SSL_write(ssl, file_xml, length);
 
-			//TODO manca calcolo e invio del mac dell'i-esima scheda di voto da inviare alla postazione di voto
+			//calcolo e invio del mac dell'i-esima scheda di voto da inviare alla postazione di voto
 			string encodedMAC = uv->calcolaMAC(encodedSessionKey,schede.at(i));
 			sendString_SSL(ssl,encodedMAC);
 
@@ -556,6 +556,10 @@ void SSLServer::serviceAttivazionePV(SSL * ssl, string ipClient) {
 		const char *num_bytes = temp_str.c_str();
 		SSL_write(ssl, num_bytes, strlen(num_bytes));
 		SSL_write(ssl, publicKeyRP.c_str(), length);
+
+		//calcolo MAC chiave pubblica e lo invio
+		string encodedMAC = uv->calcolaMAC(encodedSessionKey,publicKeyRP);
+		sendString_SSL(ssl,encodedMAC);
 
 	}
 
@@ -992,6 +996,10 @@ void SSLServer::serviceAutenticazioneRP(SSL * ssl, string ipClient) {
 		cout << xmlStringProcedureRP << endl;
 		//invio dati procedure trovate
 		sendString_SSL(ssl,xmlStringProcedureRP);
+
+		string saltScrutinio = uv->getSaltPrivateKeyRP(username);
+
+		sendString_SSL(ssl,saltScrutinio);
 	}
 	return;
 

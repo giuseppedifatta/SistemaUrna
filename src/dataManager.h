@@ -68,8 +68,10 @@ public:
 	string getEncryptedPR_RP(uint idRP);
 	uint getNumberSchedeCompilate(uint idProcedura);
 	vector <PacchettoVoto> getPacchettiVoto(uint idProcedura);
+	string rpSalt(string usernameRP);
 
-	//non usare con l'oggetto model di urnavirtuale.h
+
+
 	void votedNotCommit(uint matricola);
 	void storePacchettiSignedNoCommit(vector <PacchettoVoto> pacchetti);
 	void storeScrutinio(string scrutinioXML,uint idProcedura, string encodedSignatureRP);

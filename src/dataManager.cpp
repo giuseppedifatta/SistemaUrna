@@ -766,10 +766,6 @@ bool DataManager::userSaltAndPassword(string userid,string &storedSalt, string &
 	bool useridExist =false;
 
 	Connection * connection;
-	//	driver=get_driver_instance();
-	//	connection = driver->connect("localhost:3306","root", "root");
-	//	connection->setAutoCommit(false);
-	//	connection->setSchema("mydb");
 	this->connectToMyDB(connection);
 
 	ResultSet * resultSet;
@@ -794,8 +790,8 @@ bool DataManager::userSaltAndPassword(string userid,string &storedSalt, string &
 	delete pstmt;
 	delete resultSet;
 
-	//	connection.close();
-	//	delete connection;
+	connection->close();
+	delete connection;
 	return useridExist;
 }
 
@@ -1392,4 +1388,37 @@ void DataManager::storeScrutinio(string scrutinioXML, uint idProcedura,
 	delete conn;
 }
 
+string DataManager::rpSalt(string usernameRP) {
+	string storedSalt;
+	Connection * connection;
 
+	this->connectToMyDB(connection);
+
+	ResultSet * resultSet;
+	PreparedStatement * pstmt;
+	pstmt = connection->prepareStatement("SELECT salt FROM ResponsabiliProcedimento WHERE userid = ?");
+	try{
+		pstmt->setString(1,usernameRP);
+		resultSet = pstmt->executeQuery();
+		if(resultSet->next()){
+			cout << "RP trovato: " << usernameRP << endl;
+
+			storedSalt = resultSet->getString("salt");
+		}
+		else{
+			cerr << "RP non trovato: " << usernameRP << endl;
+		}
+	}catch(SQLException &ex){
+		cerr << "Exception occurred: " << ex.getErrorCode() <<endl;
+	}
+	pstmt->close();
+	delete pstmt;
+	resultSet->close();
+	delete resultSet;
+
+	connection->close();
+	delete connection;
+
+	return storedSalt;
+
+}
