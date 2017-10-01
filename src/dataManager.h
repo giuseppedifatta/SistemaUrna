@@ -12,6 +12,7 @@
 #include "tinyxml2.h"
 
 #include "pacchettoVoto.h"
+#include "hardwaretoken.h"
 
 #include <cppconn/connection.h>
 #include <cppconn/prepared_statement.h>
@@ -56,6 +57,7 @@ public:
 	string getSessionKey_Postazione_Urna(string IP_Postazione, uint idSessioneCorrente);
 	//bool storeVotoFirmato_U(string uniqueMAC, string encryptedSchedaCompilata, string encryptedKey,	string encryptedIV, uint nonce, string digestFirmato, uint idProceduraCorrente);
 	string getPublicKeyRP(uint idProcedura);
+	string getPublicKeyRP(string usernameRP);
 	bool uniqueIDSchedaCompilata(string id);
 	uint tryLockAnagrafica(uint matricola, uint &idTipoVotante);
 	bool infoVotanteByMatricola(uint matricola, string &nome, string &cognome, uint &statoVoto);
@@ -69,6 +71,8 @@ public:
 	uint getNumberSchedeCompilate(uint idProcedura);
 	vector <PacchettoVoto> getPacchettiVoto(uint idProcedura);
 	string rpSalt(string usernameRP);
+	uint idSeggioByIpPostazione(string ipPostazione);
+	vector <HardwareToken> htSeggio(string ipSeggio);
 
 
 

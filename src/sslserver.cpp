@@ -28,6 +28,7 @@
 #include "cryptopp/filters.h"
 #include "cryptopp/secblock.h"
 
+#include "hardwaretoken.h"
 
 using namespace CryptoPP;
 
@@ -561,6 +562,13 @@ void SSLServer::serviceAttivazionePV(SSL * ssl, string ipClient) {
 		string encodedMAC = uv->calcolaMAC(encodedSessionKey,publicKeyRP);
 		sendString_SSL(ssl,encodedMAC);
 
+		//ottenengo idSeggio relativo alla postazione che si sta attivando
+		uint idSeggio = uv->getIdSeggioByIpPostazione(ipClient);
+		sendString_SSL(ssl,to_string(idSeggio));
+
+		encodedMAC = uv->calcolaMAC(encodedSessionKey,to_string(idSeggio));
+		sendString_SSL(ssl,encodedMAC);
+
 	}
 
 	return;
@@ -611,7 +619,7 @@ void SSLServer::serviceAttivazioneSeggio(SSL * ssl, string ipClient) {
 
 	//chiave di sessione condivisa tra la postazione seggio da attivare e l'urna
 
-	//TODO 2. ricavare sessionKey per la postazione seggio con cui si sta comunicando
+	//2. ricavare sessionKey per la postazione seggio con cui si sta comunicando
 	string encodedSessionKey = uv->clientSessionKey(ipClient);
 	//string encodedSessionKey = "11A47EC4465DD95FCD393075E7D3C4EB";
 	int success = 1; //1 rappresenta insuccesso dell'operazione
@@ -623,8 +631,6 @@ void SSLServer::serviceAttivazioneSeggio(SSL * ssl, string ipClient) {
 		//3. verifica dell'hmac
 
 		success = uv->verifyMAC(encodedSessionKey,plain,macReceived);
-
-
 	}
 
 
@@ -678,13 +684,32 @@ void SSLServer::serviceAttivazioneSeggio(SSL * ssl, string ipClient) {
 		cout << "inviate informazioni sessione" << endl;
 		//----info HTs
 
-		//invio dei 5 idHT
+		//invio delle informazioni dei 5 hardware token
+		vector <HardwareToken> generatori = uv->getHTSeggio(ipClient);
+		for (uint i = 0; i < generatori.size()/*5*/; i++){
+			string sn = generatori.at(i).getSN();
+			string user = generatori.at(i).getUsername();
+			string pass = generatori.at(i).getPassword();
+			sendString_SSL(ssl,sn);
+			sendString_SSL(ssl,user);
+			sendString_SSL(ssl,pass);
 
-		//invio delle 5 username associate agli HT
+			string encodedMAC = uv->calcolaMAC(encodedSessionKey,sn+user+pass);
+			sendString_SSL(ssl, encodedMAC);
+		}
 
-		//invio delle 5 password relative agli HT
 
 		//inviate informazioni degli HT
+		cout << "inviate informazioni dei generatori otp" << endl;
+
+		//invio chiave pubblica RP
+
+		string publicKeyRP = uv->getPublicKeyRP(idProceduraCorrente);
+		sendString_SSL(ssl,publicKeyRP);
+
+		string encodedMAC = uv->calcolaMAC(encodedSessionKey,publicKeyRP);
+		sendString_SSL(ssl, encodedMAC);
+
 
 	}
 
@@ -904,7 +929,7 @@ void SSLServer::serviceResetMatricolaStatoVoto(SSL* ssl, string ipClient) {
 	//richiedi all'urna di eseguire l'operazione
 	bool resetted = false;
 	if(verified == 0){ //messaggio matricola autenticato
-	resetted = uv->resetMatricola(matricola);
+		resetted = uv->resetMatricola(matricola);
 	}
 	//invia esito operazione
 	if(resetted){
@@ -1000,6 +1025,10 @@ void SSLServer::serviceAutenticazioneRP(SSL * ssl, string ipClient) {
 		string saltScrutinio = uv->getSaltPrivateKeyRP(username);
 
 		sendString_SSL(ssl,saltScrutinio);
+
+		string publicKeyRP = uv->getPublicKeyRP(username);
+
+		sendString_SSL(ssl,publicKeyRP);
 	}
 	return;
 

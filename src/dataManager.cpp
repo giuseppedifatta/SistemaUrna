@@ -395,7 +395,10 @@ string DataManager::getPublicKeyRP(uint idProcedura){
 	}catch(SQLException &ex){
 		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
 	}
-
+	pstmt->close();
+	delete pstmt;
+	resultSet->close();
+	delete resultSet;
 	//otteniamo la chiave pubblica per l'RP
 
 	pstmt = connection->prepareStatement("SELECT publicKey FROM ResponsabiliProcedimento WHERE idResponsabileProcedimento = ?");
@@ -1421,4 +1424,104 @@ string DataManager::rpSalt(string usernameRP) {
 
 	return storedSalt;
 
+}
+
+uint DataManager::idSeggioByIpPostazione(string ipPostazione) {
+	uint idSeggio;
+	Connection * connection;
+
+	this->connectToMyDB(connection);
+
+	ResultSet * resultSet;
+	PreparedStatement * pstmt;
+	pstmt = connection->prepareStatement("SELECT idSeggio FROM Postazioni WHERE ipPostazione = ?");
+	try{
+		pstmt->setString(1,ipPostazione);
+		resultSet = pstmt->executeQuery();
+		if(resultSet->next()){
+
+
+			idSeggio = resultSet->getUInt("idSeggio");
+		}
+	}catch(SQLException &ex){
+		cerr << "Exception occurred: " << ex.getErrorCode() <<endl;
+	}
+	pstmt->close();
+	delete pstmt;
+	resultSet->close();
+	delete resultSet;
+
+	connection->close();
+	delete connection;
+
+	return idSeggio;
+}
+
+vector<HardwareToken> DataManager::htSeggio(string ipSeggio) {
+
+
+	uint idSeggio = this->idSeggioByIpPostazione(ipSeggio);
+	Connection * connection;
+	this->connectToMyDB(connection);
+
+	vector <HardwareToken> generatoriOTP;
+
+	ResultSet * resultSet;
+	PreparedStatement * pstmt;
+	pstmt = connection->prepareStatement("SELECT * FROM Token WHERE idSeggio = ?");
+	try{
+		pstmt->setUInt(1,idSeggio);
+		resultSet = pstmt->executeQuery();
+		while(resultSet->next()){
+			HardwareToken ht;
+			ht.setSN(resultSet->getString("snToken"));
+			ht.setUsername(resultSet->getString("username"));
+			ht.setPassword(resultSet->getString("password"));
+			generatoriOTP.push_back(ht);
+		}
+	}catch(SQLException &ex){
+		cerr << "Exception occurred: " << ex.getErrorCode() <<endl;
+	}
+	pstmt->close();
+	delete pstmt;
+	resultSet->close();
+	delete resultSet;
+
+	connection->close();
+	delete connection;
+
+	return generatoriOTP;
+}
+
+string DataManager::getPublicKeyRP(string usernameRP) {
+	Connection * connection;
+	this->connectToMyDB(connection);
+
+	PreparedStatement *pstmt;
+	ResultSet * resultSet;
+
+	//otteniamo la chiave pubblica per l'RP
+	string publicKey;
+	pstmt = connection->prepareStatement("SELECT publicKey FROM ResponsabiliProcedimento WHERE userid = ?");
+
+	try{
+		pstmt->setString(1,usernameRP);
+		resultSet = pstmt->executeQuery();
+		if(resultSet->next()){
+			std::istream *blobData = resultSet->getBlob("publicKey");
+			std::istreambuf_iterator<char> isb = std::istreambuf_iterator<char>(*blobData);
+			publicKey = std::string(isb, std::istreambuf_iterator<char>());
+		}
+	}catch(SQLException &ex){
+		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
+	}
+
+	pstmt->close();
+	delete pstmt;
+	delete resultSet;
+
+	connection->close();
+	delete connection;
+	//restiruisce la chiave publica encoded esadecimale
+	return publicKey;
 }

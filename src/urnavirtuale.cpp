@@ -1391,6 +1391,18 @@ string UrnaVirtuale::getSaltPrivateKeyRP(string usernameRP) {
 	return model->rpSalt(usernameRP);
 }
 
+uint UrnaVirtuale::getIdSeggioByIpPostazione(string ipPostazione) {
+	return model->idSeggioByIpPostazione(ipPostazione);
+}
+
+vector<HardwareToken> UrnaVirtuale::getHTSeggio(string ipSeggio) {
+	return model->htSeggio(ipSeggio);
+}
+
+string UrnaVirtuale::getPublicKeyRP(string usernameRP) {
+	return model->getPublicKeyRP(usernameRP);
+}
+
 void UrnaVirtuale::createScrutinioXML(vector<RisultatiSeggio> & risultatiSeggi,
 		XMLDocument * xmlDoc) {
 	XMLNode * pRoot = xmlDoc->NewElement("Scrutinio");

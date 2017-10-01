@@ -18,6 +18,7 @@
 #include "dataManager.h"
 #include "schedacompilata.h"
 #include "risultatiSeggio.h"
+#include "hardwaretoken.h"
 
 #include "cryptopp/osrng.h"
 #include "cryptopp/cryptlib.h"
@@ -53,6 +54,7 @@ public:
 	uint tryVote(uint matricola,uint &idTipoVotante);
 	vector <string> getSchede();
 	string getPublicKeyRP(uint idProceduraCorrente);
+	string getPublicKeyRP(string usernameRP);
 	int verifyMAC(string encodedSessionKey,string plain, string macEncoded);
 	string calcolaMAC(string encodedSessionKey, string plainText);
 	bool checkMACasUniqueID(string macPacchettoVoto);
@@ -69,6 +71,8 @@ public:
 	uint numSchedeCompilate(uint idProcedura);
 	string clientSessionKey(string ipPostazione);
 	string getSaltPrivateKeyRP(string username);
+	uint getIdSeggioByIpPostazione(string ipPostazione);
+	vector <HardwareToken> getHTSeggio(string ipSeggio);
 
 	void initConnessioneUrnaDB();
 
