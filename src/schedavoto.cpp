@@ -8,7 +8,6 @@ SchedaVoto::SchedaVoto()
     //id della procedura a cui la scheda di voto è associata
     this->id = 0;
     this->numPreferenze = 0;
-    this->tipoElezione = tipologieElezioni::undefined;
     this->idProceduraVoto = 0;
 }
 
@@ -74,15 +73,6 @@ vector <Candidato> SchedaVoto::removeLista(uint index)
 //    listListe = value;
 //}
 
-unsigned int SchedaVoto::getTipoElezione() const
-{
-    return tipoElezione;
-}
-
-void SchedaVoto::setTipoElezione(unsigned int value)
-{
-    tipoElezione = value;
-}
 
 std::vector<ListaElettorale> SchedaVoto::getListeElettorali() const
 {
@@ -196,4 +186,19 @@ vector<Candidato>* SchedaVoto::getPointerCandidati() {
 
 vector<ListaElettorale>* SchedaVoto::getPointerListeElettorali() {
 	return &listeElettorali;
+}
+
+void SchedaVoto::addIdTipiVotantiConsentiti(uint id)
+{
+    idTipiVotantiConsentiti.push_back(id);
+}
+
+string SchedaVoto::getDescrizioneElezione() const
+{
+    return descrizioneElezione;
+}
+
+void SchedaVoto::setDescrizioneElezione(const string &value)
+{
+    descrizioneElezione = value;
 }

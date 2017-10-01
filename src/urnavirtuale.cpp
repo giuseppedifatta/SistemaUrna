@@ -1088,9 +1088,9 @@ bool UrnaVirtuale::parseDecryptSchedaCifrata(string schedaCifrata,
 		uint idScheda = atoi(textNodeIdScheda->Value());
 		sc->setIdScheda(idScheda);
 
-		//XMLText * textNodeIdSeggio = rootNode->FirstChildElement("idSeggio")->FirstChild()->ToText();
-		//uint idSeggio = atoi(textNodeIdSeggio->Value());
-		sc->setIdSeggio(1);
+		XMLText * textNodeIdSeggio = rootNode->FirstChildElement("idSeggio")->FirstChild()->ToText();
+		uint idSeggio = atoi(textNodeIdSeggio->Value());
+		sc->setIdSeggio(idSeggio);
 
 		XMLText * textNodeIdProcedura = rootNode->FirstChildElement("idProcedura")->FirstChild()->ToText();
 		uint idProcedura = atoi(textNodeIdProcedura->Value());
@@ -1100,9 +1100,9 @@ bool UrnaVirtuale::parseDecryptSchedaCifrata(string schedaCifrata,
 		uint numeroPreferenze = atoi(textNodeNumeroPreferenze->Value());
 		sc->setNumPreferenze(numeroPreferenze);
 
-		XMLText * textNodeTipologiaElezione = rootNode->FirstChildElement("tipologiaElezione")->FirstChild()->ToText();
-		uint tipologiaElezione = atoi(textNodeTipologiaElezione->Value());
-		sc->setTipologiaElezione(tipologiaElezione);
+		XMLText * textNodeTipologiaElezione = rootNode->FirstChildElement("descrizioneElezione")->FirstChild()->ToText();
+		string descrizioneElezione = textNodeTipologiaElezione->Value();
+		sc->setDescrizioneElezione(descrizioneElezione);
 
 		XMLNode* preferenzeNode = rootNode->FirstChildElement("preferenze");
 		//primo e ultimo elemento matricolaCandidato
@@ -1150,13 +1150,13 @@ void UrnaVirtuale::contarePreferenze(SchedaCompilata sc,
 	for(uint i = 0; i < schedeVotoRisultato->size();i++){
 		if(schedeVotoRisultato->at(i).getId() == idScheda){
 			//trovata scheda in cui aggiungere il conteggio delle preferenze
-			vector<uint> matricole = sc.getMatricolePreferenze();
+			vector<string> matricole = sc.getMatricolePreferenze();
 			cout << "scheda trovata, id: " << idScheda << endl;
 			cout << "Preferenze da conteggiare: " << matricole.size() << endl;
 			for(uint m = 0; m < matricole.size(); m++){
 				//per ogni preferenza matricola da conteggiare
 				cout << "Preferenza n. " << m+1 << endl;
-				string matricola = to_string(matricole.at(m));
+				string matricola = matricole.at(m);
 				vector <Candidato> *candidati = schedeVotoRisultato->at(i).getPointerCandidati();
 				//incremento voti ai candidati
 				for (uint c = 0; c < candidati->size();c++){
@@ -1245,16 +1245,42 @@ vector<SchedaVoto> UrnaVirtuale::parsingSchedeVotoXML(vector<string> &schede){
 		cout << "PV: idScheda: " << idScheda << endl;
 		sv.setId(idScheda);
 
-		XMLText* textNodeTipologiaElezione= rootNode->FirstChildElement("tipologiaElezione")->FirstChild()->ToText();
-		uint tipologiaElezione = atoi(textNodeTipologiaElezione->Value());
-		cout << "PV: tipologia elezione: " << tipologiaElezione << endl;
-		sv.setTipoElezione(tipologiaElezione);
+		XMLText* textNodeDescrizioneElezione= rootNode->FirstChildElement("descrizioneElezione")->FirstChild()->ToText();
+		string descrizioneElezione = textNodeDescrizioneElezione->Value();
+		cout << "PV: descrizione elezione: " << descrizioneElezione << endl;
+		sv.setDescrizioneElezione(descrizioneElezione);
 
 		XMLText* textNodeNumeroPreferenze = rootNode->FirstChildElement("numeroPreferenze")->FirstChild()->ToText();
 		uint numeroPreferenze = atoi(textNodeNumeroPreferenze->Value());
 		cout << "PV: Numero preferenze: " << numeroPreferenze << endl;
 		sv.setNumPreferenze(numeroPreferenze);
 
+	    //parsing degli idTipiVotanti
+	    XMLElement * tipiVotantiElement = rootNode->FirstChildElement("tipiVotanti");
+
+	    XMLElement * firstIdTipoVotantiElement = tipiVotantiElement->FirstChildElement("idTipoVotanti");
+	    XMLElement * lastIdTipoVotantiElement = tipiVotantiElement->LastChildElement("idTipoVotanti");
+
+	    XMLElement *idTipoVotantiElement = firstIdTipoVotantiElement;
+	    bool lastIdTipoVotanti = false;
+	    do{
+
+	        XMLText* textNodeIdTipoVotanti = idTipoVotantiElement->FirstChild()->ToText();
+	        uint idTipoVotanti = atoi(textNodeIdTipoVotanti->Value());
+	        cout << "Id tipo Votanti: " << idTipoVotanti << endl;
+	        sv.addIdTipiVotantiConsentiti(idTipoVotanti);
+
+
+	        if(idTipoVotantiElement == lastIdTipoVotantiElement){
+	            lastIdTipoVotanti = true;
+	        }
+	        else{
+	            //accediamo alla successiva lista nella scheda di voto
+	            idTipoVotantiElement = idTipoVotantiElement->NextSiblingElement("idTipoVotanti");
+	            cout << "ottengo il puntatore al successivo idTipoVotanti" << endl;
+	        }
+	    }while(!lastIdTipoVotanti);
+	    cout << "non ci sono altri idTipoVotanti" << endl;
 
 		XMLElement * listeElement = rootNode->FirstChildElement("liste");
 
@@ -1407,9 +1433,9 @@ void UrnaVirtuale::createScrutinioXML(vector<RisultatiSeggio> & risultatiSeggi,
 			pElement->SetText(idProceduraVoto);
 			pSchedaRisultato->InsertEndChild(pElement);
 
-			uint tipoElezione = scheda.getTipoElezione();
-			pElement = xmlDoc->NewElement("tipologiaElezione");
-			pElement->SetText(tipoElezione);
+			string descrizioneElezione = scheda.getDescrizioneElezione();
+			pElement = xmlDoc->NewElement("descrizioneElezione");
+			pElement->SetText(descrizioneElezione.c_str());
 			pSchedaRisultato->InsertEndChild(pElement);
 
 			uint numPref = scheda.getNumPreferenze();

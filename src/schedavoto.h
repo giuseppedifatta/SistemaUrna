@@ -39,20 +39,6 @@ public:
         lista
     };
 
-    //e se fosse il sistema a decidere le tipologie di elettorato attivo?
-    //basandosi sulla tipologia di elettorato Passivo
-    enum tipologieElezioni{
-        SA, //Senato Accademico
-        CA, //Consiglio di Amministrazione
-        TA, //Rappresentanti del Personale Tecnico Amministrativo
-        CCDS, //Consiglio di Corso di Studio
-        CI, //Consiglio di Interclasse
-        CD, //Consiglio di Dipartimento
-        undefined
-    };
-
-
-
 
     unsigned int getIdProceduraVoto() const;
     void setIdProceduraVoto(unsigned int value);
@@ -61,8 +47,7 @@ public:
 //    std::vector<std::string> getListListe() const;
 //    void setListListe(const std::vector<std::string> &value);
 
-    unsigned int getTipoElezione() const;
-    void setTipoElezione(unsigned int value);
+
 
     std::vector<ListaElettorale> getListeElettorali() const;
     //void setListeElettorali(const std::vector<ListaElettorale> &value);
@@ -71,6 +56,10 @@ public:
 	const std::vector<Candidato>& getCandidati() const;
 	vector<Candidato>* getPointerCandidati();
 	vector<ListaElettorale> * getPointerListeElettorali();
+
+	void addIdTipiVotantiConsentiti(uint id);
+	string getDescrizioneElezione() const;
+	void setDescrizioneElezione(const string &value);
 private:
     unsigned int idProceduraVoto;
     unsigned int id;
@@ -82,9 +71,8 @@ private:
 
     //candidati
     std::vector <Candidato> candidati;
-
-    unsigned int tipoElezione;
-
+    string descrizioneElezione;
+    std::vector <uint> idTipiVotantiConsentiti;
 };
 
 //Q_DECLARE_METATYPE(SchedaVoto)
