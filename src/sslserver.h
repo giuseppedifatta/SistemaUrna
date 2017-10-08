@@ -43,11 +43,11 @@ public:
         storeSchedeCompilate = 5, //postazionevoto
         scrutinio = 6, //responsabile procedimento
         autenticazioneRP = 7,//responsabile procedimento
-        tryVoteElettore = 8,
-        infoMatricola = 9,
+        tryVoteElettore = 8, //seggio
+        infoMatricola = 9, //seggio
         //setMatricolaVoted = 10,
-        checkConnection = 11,
-        resetMatricolaStatoVoto = 12,
+        checkConnection = 11, //postazione voto
+        resetMatricolaStatoVoto = 12 //seggio
     };
 
     //funzione che mette il server in ascolto delle richieste

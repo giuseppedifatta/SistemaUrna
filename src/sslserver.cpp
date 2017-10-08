@@ -301,27 +301,30 @@ void SSLServer::serviceStoreSchedeCompilate(SSL * ssl, string ipClient){
 	for(uint i = 0 ; i < numSchede; i++){
 		PacchettoVoto pv;
 		cout << "Ricevo pacchetto: " << i+1 << endl;
-		//2. ricezione chiavi di cifratura
-		//ricevo kc
-		string kc;
-		receiveString_SSL(ssl,kc);
-		cout << "chiave cifrata: " << kc << endl;
-		pv.setKc(kc);
 
-		//ricevo ivc
-		string ivc;
-		receiveString_SSL(ssl,ivc);
-		cout << "initial value cifrato: " << ivc << endl;
-		pv.setIvc(ivc);
 
 		bool verified = false;
 		bool macIdAvailable = false;
 
 		//3. ricevo scheda cifrata
 		uint tentativi = 0;
-		while(!verified || !macIdAvailable){
+		while(!verified || !macIdAvailable || tentativi < 10){
 			tentativi++;
 			cout << "Tentativi ricezione scheda " << i+1 << ": " << tentativi << endl;
+
+			//2. ricezione chiavi di cifratura
+			//ricevo kc
+			string kc;
+			receiveString_SSL(ssl,kc);
+			cout << "chiave cifrata: " << kc << endl;
+			pv.setKc(kc);
+
+			//ricevo ivc
+			string ivc;
+			receiveString_SSL(ssl,ivc);
+			cout << "initial value cifrato: " << ivc << endl;
+			pv.setIvc(ivc);
+
 			string schedaCifrata;
 			receiveString_SSL(ssl,schedaCifrata);
 			cout << "scheda cifrata: " << schedaCifrata << endl;
@@ -340,7 +343,7 @@ void SSLServer::serviceStoreSchedeCompilate(SSL * ssl, string ipClient){
 
 			//verifica del MAC
 			//TODO 3.1. ricavare sessionKey per la postazione con cui si sta comunicando
-			string encodedSessionKey = "11A47EC4465DD95FCD393075E7D3C4EB";
+			string encodedSessionKey = uv->clientSessionKey(ipClient);
 			cout << "Session key: " << encodedSessionKey << endl;
 
 			string datiConcatenati = schedaCifrata + kc + ivc + std::to_string(nonce);
@@ -905,6 +908,7 @@ void SSLServer::serviceCheckConnection(SSL* ssl, string ipClient) {
 	//seggioChiamante->mutex_stdout.lock();
 	cout << "ServizioUrnaThread: service started: " << servizi::checkConnection << endl;
 	//seggioChiamante->mutex_stdout.unlock();
+	sendString_SSL(ssl,"ok");
 }
 void SSLServer::serviceResetMatricolaStatoVoto(SSL* ssl, string ipClient) {
 	//seggioChiamante->mutex_stdout.lock();

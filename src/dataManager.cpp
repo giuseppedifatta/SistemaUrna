@@ -737,6 +737,8 @@ bool DataManager::setNotVoted(uint matricola) {
 	Connection * connection;
 	this->connectToAnagraficaDB(connection);
 
+	//TODO verificare che lo stato presente non sia "espresso", in caso positivo si può resettare lo stato della matricola
+
 	PreparedStatement *pstmt;
 	pstmt = connection->prepareStatement("UPDATE Anagrafica SET statoVoto=? WHERE matricola=?");
 
