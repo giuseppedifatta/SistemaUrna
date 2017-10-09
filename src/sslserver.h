@@ -89,10 +89,10 @@ private:
 	void serviceAttivazioneSeggio(SSL *ssl, string ipClient);
 	//void serviceInfoProcedura(SSL * ssl, string ipClient);
 	//void serviceInfoSessione(SSL *ssl, string ipClient);
-	void serviceRisultatiVoto(SSL *ssl, string ipClient);
+	void serviceRisultatiVoto(SSL *ssl);
 	void serviceStoreSchedeCompilate(SSL* ssl, string ipClient);
-	void serviceScrutinio(SSL *ssl, string ipClient);
-	void serviceAutenticazioneRP(SSL *ssl, string ipClient);
+	void serviceScrutinio(SSL *ssl);
+	void serviceAutenticazioneRP(SSL *ssl);
 	void serviceTryVoteElettore(SSL * ssl, string ipClient);
 	void serviceInfoMatricola(SSL * ssl, string ipClient);
 	//void serviceSetMatricolaVoted(SSL *ssl, string ipClient);

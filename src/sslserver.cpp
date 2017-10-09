@@ -206,9 +206,8 @@ void SSLServer::Servlet(int client_sock_fd/*, string ipClient*/) {/* threadable 
 				//				break;
 			}
 			case servizi::risultatiVoto:{
-				string ipClient;
-				receiveString_SSL(ssl,ipClient);
-				this->serviceRisultatiVoto(ssl,ipClient);
+
+				this->serviceRisultatiVoto(ssl);
 				break;
 			}
 			case servizi::storeSchedeCompilate:{
@@ -218,15 +217,13 @@ void SSLServer::Servlet(int client_sock_fd/*, string ipClient*/) {/* threadable 
 				break;
 			}
 			case servizi::scrutinio:{
-				string ipClient;
-				receiveString_SSL(ssl,ipClient);
-				this->serviceScrutinio(ssl,ipClient);
+
+				this->serviceScrutinio(ssl);
 				break;
 			}
 			case servizi::autenticazioneRP:{
-				string ipClient;
-				receiveString_SSL(ssl,ipClient);
-				this->serviceAutenticazioneRP(ssl,ipClient);
+
+				this->serviceAutenticazioneRP(ssl);
 				break;
 			}
 			case servizi::tryVoteElettore:{
@@ -248,7 +245,8 @@ void SSLServer::Servlet(int client_sock_fd/*, string ipClient*/) {/* threadable 
 				string ipClient;
 				receiveString_SSL(ssl,ipClient);
 				this->serviceCheckConnection(ssl,ipClient);
-				break;}
+				break;
+			}
 			case servizi::resetMatricolaStatoVoto:{
 				string ipClient;
 				receiveString_SSL(ssl,ipClient);
@@ -308,7 +306,7 @@ void SSLServer::serviceStoreSchedeCompilate(SSL * ssl, string ipClient){
 
 		//3. ricevo scheda cifrata
 		uint tentativi = 0;
-		while(!verified || !macIdAvailable || tentativi < 10){
+		while((!verified || !macIdAvailable) && tentativi < 10){
 			tentativi++;
 			cout << "Tentativi ricezione scheda " << i+1 << ": " << tentativi << endl;
 
@@ -741,7 +739,7 @@ void SSLServer::serviceAttivazioneSeggio(SSL * ssl, string ipClient) {
 //
 //}
 
-void SSLServer::serviceRisultatiVoto(SSL *ssl, string ipClient) {
+void SSLServer::serviceRisultatiVoto(SSL *ssl) {
 	//seggioChiamante->mutex_stdout.lock();
 	cout << "ServizioUrnaThread: service started: " << servizi::risultatiVoto << endl;
 	//seggioChiamante->mutex_stdout.unlock();
@@ -751,7 +749,7 @@ void SSLServer::serviceRisultatiVoto(SSL *ssl, string ipClient) {
 
 }
 
-void SSLServer::serviceScrutinio(SSL * ssl, string ipClient) {
+void SSLServer::serviceScrutinio(SSL * ssl) {
 	//seggioChiamante->mutex_stdout.lock();
 	cout << "ServizioUrnaThread: service started: " << servizi::scrutinio << endl;
 	//seggioChiamante->mutex_stdout.unlock();
@@ -774,15 +772,21 @@ void SSLServer::serviceScrutinio(SSL * ssl, string ipClient) {
 	//invia numeroSchede da scrutinare
 	sendString_SSL(ssl,to_string(numSchedeDaScrutinare));
 
-	//chiamo la funzione urna per effettuare lo scrutinio
-	uv->doScrutinio(idProcedura,derivedKey);
+	//chiamo la funzione urna per effettuare lo scrutinio e invio l'esito dello scrutinio
+	if(uv->doScrutinio(idProcedura,derivedKey)){
+		sendString_SSL(ssl,to_string(0));
+	}
+	else{
+		sendString_SSL(ssl,to_string(1));
+	}
 
 	//invio procedure aggiornate post scrutinio
 	string username;
-	receiveString_SSL(ssl,username);
-	string xmlStringProcedureRP = uv->getStringProcedure_formattedXML_byUsernameRP(username);
-	//invio le procedure aggiornate come file xml
-	sendString_SSL(ssl,xmlStringProcedureRP);
+	if (receiveString_SSL(ssl,username) !=0){
+		string xmlStringProcedureRP = uv->getStringProcedure_formattedXML_byUsernameRP(username);
+		//invio le procedure aggiornate come file xml
+		sendString_SSL(ssl,xmlStringProcedureRP);
+	}
 	return;
 
 }
@@ -976,7 +980,7 @@ void SSLServer::sendString_SSL(SSL* ssl, string s) {
 	SSL_write(ssl, s.c_str(), length);
 }
 
-void SSLServer::serviceAutenticazioneRP(SSL * ssl, string ipClient) {
+void SSLServer::serviceAutenticazioneRP(SSL * ssl) {
 	//seggioChiamante->mutex_stdout.lock();
 	cout << "ServizioUrnaThread: service started: " << servizi::autenticazioneRP << endl;
 	//seggioChiamante->mutex_stdout.unlock();
@@ -985,14 +989,17 @@ void SSLServer::serviceAutenticazioneRP(SSL * ssl, string ipClient) {
 	string username;
 	receiveString_SSL(ssl,username);
 
+	string saltUser = uv->getSaltUser(username);
+	sendString_SSL(ssl,saltUser);
+
 	//ricevi password rp
-	string password;
-	receiveString_SSL(ssl,password);
+	string hashedPassword;
+	receiveString_SSL(ssl,hashedPassword);
 
 	//controllo credenziali sul database
 	bool autenticato;
 	uint esito;
-	if(uv->authenticateRP(username,password)){//verifica credenziali e inivia esito autenticazione
+	if(uv->authenticateRP(username,hashedPassword)){//verifica credenziali e invia esito autenticazione
 		if(uv->idRPByUsername(username) == 0){
 			//si è loggato il tecnico o il superuser, ma non sono responsabili di procedimento
 			cerr << "credenziali appartenenti a tecnico o superuser, rp non autenticato" << endl;

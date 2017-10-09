@@ -71,6 +71,7 @@ public:
 	uint getNumberSchedeCompilate(uint idProcedura);
 	vector <PacchettoVoto> getPacchettiVoto(uint idProcedura);
 	string rpSalt(string usernameRP);
+	string userSalt(string userid);
 	uint idSeggioByIpPostazione(string ipPostazione);
 	vector <HardwareToken> htSeggio(string ipSeggio);
 

@@ -71,6 +71,7 @@ public:
 	uint numSchedeCompilate(uint idProcedura);
 	string clientSessionKey(string ipPostazione);
 	string getSaltPrivateKeyRP(string username);
+	string getSaltUser(string userid);
 	uint getIdSeggioByIpPostazione(string ipPostazione);
 	vector <HardwareToken> getHTSeggio(string ipSeggio);
 

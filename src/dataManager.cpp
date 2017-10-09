@@ -1428,6 +1428,43 @@ string DataManager::rpSalt(string usernameRP) {
 
 }
 
+
+string DataManager::userSalt(string userid) {
+	string storedSalt;
+	Connection * connection;
+
+	this->connectToMyDB(connection);
+
+	ResultSet * resultSet;
+	PreparedStatement * pstmt;
+	pstmt = connection->prepareStatement("SELECT salt FROM Utenti WHERE userid = ?");
+	try{
+		pstmt->setString(1,userid);
+		resultSet = pstmt->executeQuery();
+		if(resultSet->next()){
+			cout << "User trovato: " << userid << endl;
+
+			storedSalt = resultSet->getString("salt");
+		}
+		else{
+			cerr << "User non trovato: " << userid << endl;
+		}
+	}catch(SQLException &ex){
+		cerr << "Exception occurred: " << ex.getErrorCode() <<endl;
+	}
+	pstmt->close();
+	delete pstmt;
+	resultSet->close();
+	delete resultSet;
+
+	connection->close();
+	delete connection;
+
+	return storedSalt;
+
+}
+
+
 uint DataManager::idSeggioByIpPostazione(string ipPostazione) {
 	uint idSeggio;
 	Connection * connection;

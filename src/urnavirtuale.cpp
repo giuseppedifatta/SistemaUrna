@@ -632,7 +632,8 @@ bool UrnaVirtuale::doScrutinio(uint idProcedura, string derivedKey) {
 
 	//ottengo dal db le schede voto con i dati dei candidati
 	vector <string> xmlSchedeVoto = model->getSchedeVoto(idProcedura);
-	//parsare schede voto con i dati dei candidati
+
+	//ottengo le schede voto con i dati dei candidati, in cui andare a fare il conteggio
 	vector <SchedaVoto> schedeVoto = parsingSchedeVotoXML(xmlSchedeVoto);
 
 	//i dati di voto vengono suddivisi per seggio
@@ -697,7 +698,7 @@ bool UrnaVirtuale::doScrutinio(uint idProcedura, string derivedKey) {
 				addSeggioIfNotExist(&risultatiSeggi,idSeggio,schedeVoto);
 				cout << "---Seggio "<< idSeggio <<"----" << endl;
 				//ora il seggio è presente nei seggi che hanno risultati di voto,
-				//conteggio le preferenze per la scheda che è stata compilata presso quel seggio
+				//conteggio delle preferenze per la scheda che è stata compilata presso quel seggio
 				for(uint i = 0; i < risultatiSeggi.size();i++){
 					if(risultatiSeggi.at(i).getIdSeggio()==idSeggio){
 						contarePreferenze(sc,&risultatiSeggi.at(i));
@@ -816,16 +817,16 @@ uint UrnaVirtuale::tryVote(uint matricola, uint &idTipoVotante) {
 
 
 
-bool UrnaVirtuale::authenticateRP(string userid, string password){
+bool UrnaVirtuale::authenticateRP(string userid, string hashedPassword){
 	//ottengo dal database salt e hash della password del tecnico
 	string storedSalt;
 	string storedHashedPassword;
 	model->userSaltAndPassword(userid, storedSalt,storedHashedPassword);
 
 
-	string calculatedHashedPassword = hashPassword(password,storedSalt);
+	//string calculatedHashedPassword = hashPassword(password,storedSalt);
 
-	if(calculatedHashedPassword==storedHashedPassword){
+	if(hashedPassword==storedHashedPassword){
 		return true;
 	}
 	else {
@@ -836,7 +837,7 @@ bool UrnaVirtuale::authenticateRP(string userid, string password){
 string UrnaVirtuale::hashPassword( string plainPass, string salt){
 
 	//100 iterazioni
-	uint iterations = 100;
+	uint iterations = 10000;
 	SecByteBlock result(32);
 	string hexResult;
 
@@ -1142,13 +1143,16 @@ bool UrnaVirtuale::parseDecryptSchedaCifrata(string schedaCifrata,
 void UrnaVirtuale::contarePreferenze(SchedaCompilata sc,
 		RisultatiSeggio *rs) {
 	uint idScheda = sc.getIdScheda();
+	cout << "id scheda: " << idScheda << endl;
 
 	//ottengo il riferimento alle schede voto risultato del seggio per cui sto conteggiando i voti
 	vector <SchedaVoto> *schedeVotoRisultato = rs->getPointerSchedeVotoRisultato();
 	cout << "inizio ricerca scheda a cui aggiungere le preferenze" << endl;
 
 	for(uint i = 0; i < schedeVotoRisultato->size();i++){
-		if(schedeVotoRisultato->at(i).getId() == idScheda){
+		uint idSchedaCorrente = schedeVotoRisultato->at(i).getId();
+		cout << "Scheda corrente ha id: " << idSchedaCorrente << endl;
+		if(idSchedaCorrente == idScheda){
 			//trovata scheda in cui aggiungere il conteggio delle preferenze
 			vector<string> matricole = sc.getMatricolePreferenze();
 			cout << "scheda trovata, id: " << idScheda << endl;
@@ -1401,6 +1405,10 @@ vector<HardwareToken> UrnaVirtuale::getHTSeggio(string ipSeggio) {
 
 string UrnaVirtuale::getPublicKeyRP(string usernameRP) {
 	return model->getPublicKeyRP(usernameRP);
+}
+
+string UrnaVirtuale::getSaltUser(string userid) {
+	return model->userSalt(userid);
 }
 
 void UrnaVirtuale::createScrutinioXML(vector<RisultatiSeggio> & risultatiSeggi,
