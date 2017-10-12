@@ -642,6 +642,8 @@ bool UrnaVirtuale::doScrutinio(uint idProcedura, string derivedKey) {
 	RisultatiSeggio risultatiComplessivi; //urna virtuale, idSeggio = 0, valore predefinito
 	risultatiComplessivi.setSchedeVotoRisultato(schedeVoto);
 
+	bool pacchettiCorrotti = false;
+
 	for(uint i=0; i< pacchetti.size();i++){
 		//1.estrazione informazione dal pacchetto di voto
 		string idSchedaCompilata ,schedaCifrata, kc, ivc, encodedSignature;
@@ -707,7 +709,7 @@ bool UrnaVirtuale::doScrutinio(uint idProcedura, string derivedKey) {
 				}
 
 				//conteggio indifferenziato rispetto ai seggi, potrei farlo dopo, ma andando a rianalizzare tutti i risultati per signoli seggi
-				cout << "---UrnaCentrale "<< idSeggio <<"----" << endl;
+				cout << "---UrnaCentrale----" << endl;
 				contarePreferenze(sc,&risultatiComplessivi);
 			}
 		}
@@ -720,7 +722,7 @@ bool UrnaVirtuale::doScrutinio(uint idProcedura, string derivedKey) {
 
 	if(pacchettiVerificati != pacchettiEstratti){
 		cerr << "alcuni pacchetti non hanno superato la verifica della firma dell'urna" << endl;
-		return false;
+		pacchettiCorrotti = true;
 	}
 	else{
 		cout << pacchettiVerificati << " pacchetti estratti e verificati!" << endl;
@@ -752,7 +754,8 @@ bool UrnaVirtuale::doScrutinio(uint idProcedura, string derivedKey) {
 	cout << "Firma di RP al file di scrutinio+idProceduraAsString: " << encodedSignatureRP << endl;
 
 	model->storeScrutinio(scrutinioXML,idProcedura, encodedSignatureRP);
-	return true;
+
+	return !pacchettiCorrotti;
 }
 
 
@@ -1226,16 +1229,16 @@ void UrnaVirtuale::initConnessioneUrnaDB() {
 	model->connectToUrnaDB();
 }
 
-vector<SchedaVoto> UrnaVirtuale::parsingSchedeVotoXML(vector<string> &schede){
+vector<SchedaVoto> UrnaVirtuale::parsingSchedeVotoXML(vector<string> &schedeXML){
 	vector<SchedaVoto> schedeVoto;
-
-	for(uint i = 0; i< schede.size(); i++){
+	cout << "Numero schede della procedura: " << schedeXML.size() << endl;
+	for(uint i = 0; i< schedeXML.size(); i++){
 		SchedaVoto sv;
 
 		//parsing file xml e inserimento dati nell'oggetto scheda voto da aggiungere al vettore delle schede
 
 		XMLDocument xmlDoc;
-		xmlDoc.Parse(schede.at(i).c_str());
+		xmlDoc.Parse(schedeXML.at(i).c_str());
 
 		XMLNode *rootNode = xmlDoc.FirstChild();
 
@@ -1259,32 +1262,32 @@ vector<SchedaVoto> UrnaVirtuale::parsingSchedeVotoXML(vector<string> &schede){
 		cout << "PV: Numero preferenze: " << numeroPreferenze << endl;
 		sv.setNumPreferenze(numeroPreferenze);
 
-	    //parsing degli idTipiVotanti
-	    XMLElement * tipiVotantiElement = rootNode->FirstChildElement("tipiVotanti");
+		//parsing degli idTipiVotanti
+		XMLElement * tipiVotantiElement = rootNode->FirstChildElement("tipiVotanti");
 
-	    XMLElement * firstIdTipoVotantiElement = tipiVotantiElement->FirstChildElement("idTipoVotanti");
-	    XMLElement * lastIdTipoVotantiElement = tipiVotantiElement->LastChildElement("idTipoVotanti");
+		XMLElement * firstIdTipoVotantiElement = tipiVotantiElement->FirstChildElement("idTipoVotanti");
+		XMLElement * lastIdTipoVotantiElement = tipiVotantiElement->LastChildElement("idTipoVotanti");
 
-	    XMLElement *idTipoVotantiElement = firstIdTipoVotantiElement;
-	    bool lastIdTipoVotanti = false;
-	    do{
+		XMLElement *idTipoVotantiElement = firstIdTipoVotantiElement;
+		bool lastIdTipoVotanti = false;
+		do{
 
-	        XMLText* textNodeIdTipoVotanti = idTipoVotantiElement->FirstChild()->ToText();
-	        uint idTipoVotanti = atoi(textNodeIdTipoVotanti->Value());
-	        cout << "Id tipo Votanti: " << idTipoVotanti << endl;
-	        sv.addIdTipiVotantiConsentiti(idTipoVotanti);
+			XMLText* textNodeIdTipoVotanti = idTipoVotantiElement->FirstChild()->ToText();
+			uint idTipoVotanti = atoi(textNodeIdTipoVotanti->Value());
+			cout << "Id tipo Votanti: " << idTipoVotanti << endl;
+			sv.addIdTipiVotantiConsentiti(idTipoVotanti);
 
 
-	        if(idTipoVotantiElement == lastIdTipoVotantiElement){
-	            lastIdTipoVotanti = true;
-	        }
-	        else{
-	            //accediamo alla successiva lista nella scheda di voto
-	            idTipoVotantiElement = idTipoVotantiElement->NextSiblingElement("idTipoVotanti");
-	            cout << "ottengo il puntatore al successivo idTipoVotanti" << endl;
-	        }
-	    }while(!lastIdTipoVotanti);
-	    cout << "non ci sono altri idTipoVotanti" << endl;
+			if(idTipoVotantiElement == lastIdTipoVotantiElement){
+				lastIdTipoVotanti = true;
+			}
+			else{
+				//accediamo alla successiva lista nella scheda di voto
+				idTipoVotantiElement = idTipoVotantiElement->NextSiblingElement("idTipoVotanti");
+				cout << "ottengo il puntatore al successivo idTipoVotanti" << endl;
+			}
+		}while(!lastIdTipoVotanti);
+		cout << "non ci sono altri idTipoVotanti" << endl;
 
 		XMLElement * listeElement = rootNode->FirstChildElement("liste");
 
@@ -1379,7 +1382,7 @@ vector<SchedaVoto> UrnaVirtuale::parsingSchedeVotoXML(vector<string> &schede){
 
 		schedeVoto.push_back(sv);
 	}
-
+	cout << "Numero schede di voto parsate: " << schedeVoto.size() << endl;
 	return schedeVoto;
 }
 
@@ -1411,6 +1414,10 @@ string UrnaVirtuale::getSaltUser(string userid) {
 	return model->userSalt(userid);
 }
 
+void UrnaVirtuale::risultatiScrutinioXML(uint idProcedura, string &risultatiScrutinioXML, string &encodedSignRP) {
+	 model->getRisultatiScrutinio(idProcedura, risultatiScrutinioXML, encodedSignRP);
+}
+
 void UrnaVirtuale::createScrutinioXML(vector<RisultatiSeggio> & risultatiSeggi,
 		XMLDocument * xmlDoc) {
 	XMLNode * pRoot = xmlDoc->NewElement("Scrutinio");
@@ -1432,13 +1439,16 @@ void UrnaVirtuale::createScrutinioXML(vector<RisultatiSeggio> & risultatiSeggi,
 		idSeggioElement->SetText(idSeggio);
 		pRisultatoSeggio->InsertEndChild(idSeggioElement);
 
-		XMLNode *pSchedeRisultato = xmlDoc->NewElement("schede");
-		pRisultatoSeggio->InsertEndChild(pSchedeRisultato);
+		XMLNode *pSchede = xmlDoc->NewElement("schede");
+		pRisultatoSeggio->InsertEndChild(pSchede);
 
-		XMLNode * pSchedaRisultato = xmlDoc->NewElement("schedaRisultato");
-		pSchedeRisultato->InsertEndChild(pSchedaRisultato);
+
 
 		for(uint i= 0; i< schedeRisultato.size();i++){
+			XMLNode * pSchedaRisultato = xmlDoc->NewElement("schedaRisultato");
+			pSchede->InsertEndChild(pSchedaRisultato);
+
+
 			SchedaVoto scheda = schedeRisultato.at(i);
 
 			XMLElement * pElement;

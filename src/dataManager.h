@@ -80,6 +80,7 @@ public:
 	void votedNotCommit(uint matricola);
 	void storePacchettiSignedNoCommit(vector <PacchettoVoto> pacchetti);
 	void storeScrutinio(string scrutinioXML,uint idProcedura, string encodedSignatureRP);
+	void getRisultatiScrutinio(uint idProcedura, string &scrutinioXML, string &encodedSignRP);
 	void commitUrnaAnagrafica();
 	void rollbackUrnaAnagrafica();
 

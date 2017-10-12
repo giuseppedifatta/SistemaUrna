@@ -1564,3 +1564,40 @@ string DataManager::getPublicKeyRP(string usernameRP) {
 	//restiruisce la chiave publica encoded esadecimale
 	return publicKey;
 }
+
+void DataManager::getRisultatiScrutinio(uint idProcedura, string &scrutinioXML, string &encodedSignRP) {
+
+
+	Connection * connection;
+	this->connectToMyDB(connection);
+
+	PreparedStatement * pstmt;
+	ResultSet * resultSet;
+	pstmt = connection->prepareStatement
+			("SELECT * FROM Scrutini where idProcedura=?");
+	try{
+		pstmt->setUInt(1,idProcedura);
+		resultSet = pstmt->executeQuery();
+		while(resultSet->next()){
+
+
+
+			std::istream *blobFileRisultati = resultSet->getBlob("fileRisultati");
+			std::istreambuf_iterator<char> isb1 = std::istreambuf_iterator<char>(*blobFileRisultati);
+			scrutinioXML = std::string(isb1, std::istreambuf_iterator<char>());
+
+			std::istream *blobFirmaRP = resultSet->getBlob("encodedSignatureRP");
+			std::istreambuf_iterator<char> isb2 = std::istreambuf_iterator<char>(*blobFirmaRP);
+			encodedSignRP = std::string(isb2, std::istreambuf_iterator<char>());
+
+		}
+	}catch(SQLException &ex){
+		cerr << "Exception occurred: " << ex.getErrorCode() <<endl;
+	}
+	pstmt->close();
+	delete pstmt;
+	delete resultSet;
+
+	connection->close();
+	delete connection;
+}

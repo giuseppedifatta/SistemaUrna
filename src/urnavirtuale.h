@@ -66,6 +66,7 @@ public:
 	bool authenticateRP(string userid, string password);
 	string hashPassword( string plainPass, string salt);
 	string procedureVotoRPtoXML(vector <ProceduraVoto> pvs);
+	void risultatiScrutinioXML(uint idProcedura, string &risultatiScrutinioXML, string &encodedSignRP);
 	uint idRPByUsername(string username);
 	bool doScrutinio(uint idProcedura, string derivedKey);
 	uint numSchedeCompilate(uint idProcedura);
@@ -73,6 +74,7 @@ public:
 	string getSaltPrivateKeyRP(string username);
 	string getSaltUser(string userid);
 	uint getIdSeggioByIpPostazione(string ipPostazione);
+
 	vector <HardwareToken> getHTSeggio(string ipSeggio);
 
 	void initConnessioneUrnaDB();
@@ -136,12 +138,10 @@ private:
 	CryptoPP::RSA::PrivateKey extractPrivatePemKey(const char * key_pem_filePath);
 	void getPublicKeyFromCert(CryptoPP::BufferedTransformation & certin,		CryptoPP::BufferedTransformation & keyout);
 
-
 	void contarePreferenze(SchedaCompilata sc,RisultatiSeggio *rs);
 	void addSeggioIfNotExist(vector <RisultatiSeggio> *risultatiSeggi,uint idSeggio,const vector <SchedaVoto> &schedeVoto);
 	vector<SchedaVoto> parsingSchedeVotoXML(vector<string> &schede);
 	void createScrutinioXML(vector<RisultatiSeggio>& risultatiSeggi,XMLDocument *xmlDoc);
-
 
 };
 
