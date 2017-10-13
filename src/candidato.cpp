@@ -79,3 +79,7 @@ void Candidato::incVoti() {
 uint Candidato::getNumVoti() const {
 	return numVoti;
 }
+
+void Candidato::setNumVoti(uint num) {
+	this->numVoti = num;
+}

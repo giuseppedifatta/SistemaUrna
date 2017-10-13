@@ -11,6 +11,7 @@
 UrnaVirtuale::UrnaVirtuale() {
 
 	model = new DataManager();
+	sessioneCorrenteSuccessiva = nullptr;
 	//	modelPacchetti = new DataManager();
 	//	modelAnagrafica = new DataManager();
 	//modelPacchetti = new DataManager();
@@ -31,7 +32,7 @@ uint UrnaVirtuale::getIdProceduraCorrente(){
 uint UrnaVirtuale::getIdSessioneCorrenteSuccessiva(){
 	sessioneCorrenteSuccessiva = model->getSessioneCorrenteSuccessiva(proceduraCorrente.getIdProceduraVoto());
 
-	return sessioneCorrenteSuccessiva.getIdSessione();
+	return sessioneCorrenteSuccessiva->getIdSessione();
 }
 
 uint UrnaVirtuale::getNumeroSchede(uint idProceduraCorrente){
@@ -1416,6 +1417,21 @@ string UrnaVirtuale::getSaltUser(string userid) {
 
 void UrnaVirtuale::risultatiScrutinioXML(uint idProcedura, string &risultatiScrutinioXML, string &encodedSignRP) {
 	 model->getRisultatiScrutinio(idProcedura, risultatiScrutinioXML, encodedSignRP);
+}
+
+bool UrnaVirtuale::existSessioneSuccessiva(uint idProcedura, SessioneVoto* sv) {
+	sv = model->getSessioneCorrenteSuccessiva(idProcedura);
+
+	if(sv==nullptr){
+		return false;
+	}
+	return true;
+}
+
+SessioneVoto* UrnaVirtuale::getPointerSessioneCorrenteSuccessiva() {
+	sessioneCorrenteSuccessiva = model->getSessioneCorrenteSuccessiva(this->getIdProceduraCorrente());
+
+	return sessioneCorrenteSuccessiva;
 }
 
 void UrnaVirtuale::createScrutinioXML(vector<RisultatiSeggio> & risultatiSeggi,

@@ -60,6 +60,7 @@ public:
 	bool checkMACasUniqueID(string macPacchettoVoto);
 	//bool storePacchettoVoto(string idSchedaCompilata, string schedaCifrata, string kc, string ivc, uint nonce);
 	uint getIdSessioneCorrenteSuccessiva();
+	bool existSessioneSuccessiva(uint idProcedura, SessioneVoto *sv);
 	bool getInfoMatricola(uint matricola, string &nome, string &cognome, uint &statoVoto);
 	//bool updateVoted(uint matricola);
 	bool resetMatricola(uint matricola);
@@ -84,9 +85,7 @@ public:
 	}
 
 
-	const SessioneVoto& getSessioneCorrenteSuccessiva() const {
-		return sessioneCorrenteSuccessiva;
-	}
+	SessioneVoto * getPointerSessioneCorrenteSuccessiva();
 
 	enum esitoLock{
 		locked,
@@ -116,7 +115,7 @@ public:
 
 private:
 	ProceduraVoto proceduraCorrente;
-	SessioneVoto sessioneCorrenteSuccessiva;
+	SessioneVoto * sessioneCorrenteSuccessiva;
 
 	DataManager *model; //query e update generiche sul DB
 

@@ -430,58 +430,10 @@ string DataManager::getPublicKeyRP(uint idProcedura){
 	return publicKey;
 }
 
-//bool DataManager::storeVotoFirmato_U(string uniqueMAC,
-//		string encryptedSchedaCompilata, string encryptedKey,
-//		string encryptedIV, uint nonce, string digestFirmato,
-//		uint idProceduraCorrente) {
-//	bool stored = true;
-//	PreparedStatement *pstmt;
-//
-//	pstmt = connection->prepareStatement("INSERT INTO SchedeCompilate (`idSchedaCompilata`, `idProcedura`,"
-//			" `fileVotoCifrato`, `chiavecifrata`, `ivcifrato`, `signatureUrna`, `nonce`) VALUES(?,?,?,?,?,?,?)");
-//	try{
-//		pstmt->setString(1,uniqueMAC);
-//		pstmt->setUInt(2,idProceduraCorrente);
-//
-//		//std::stringstream ss(schedaStr);
-//		//        pstmt->setBlob(1,&ss);
-//		cout << "toBlob: " << encryptedSchedaCompilata << endl;
-//
-//		std::istringstream is(encryptedSchedaCompilata);
-//
-//		pstmt->setBlob(3,&is);
-//
-//
-//
-//		std::istringstream key(encryptedKey);
-//		pstmt->setBlob(4,&key);
-//
-//
-//		std::istringstream iv(encryptedIV);
-//		pstmt->setBlob(5,&iv);
-//
-//		std::istringstream d(digestFirmato);
-//		pstmt->setBlob(6,&d);
-//
-//		pstmt->setUInt(7,nonce);
-//
-//		pstmt->executeUpdate();
-//		connection->commit();
-//
-//
-//	}catch(SQLException &ex){
-//		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
-//		stored = false;
-//	}
-//
-//	pstmt->close();
-//	delete pstmt;
-//
-//	return stored;
-//}
 
-SessioneVoto DataManager::getSessioneCorrenteSuccessiva(uint idProceduraCorrente) {
-	SessioneVoto sv;
+
+SessioneVoto * DataManager::getSessioneCorrenteSuccessiva(uint idProceduraCorrente) {
+	SessioneVoto * sv = nullptr;
 	time_t now = time(0);
 	string dt  = ctime(&now);
 	tm *ltm = localtime(&now);
@@ -504,6 +456,8 @@ SessioneVoto DataManager::getSessioneCorrenteSuccessiva(uint idProceduraCorrente
 
 	PreparedStatement * pstmt;
 	ResultSet * resultSet;
+
+	//trova la prossima sessione del giorno o la prima sessione del giorno dopo
 	pstmt = connection->prepareStatement
 			("SELECT * FROM Sessioni WHERE idProceduraVoto=? AND "
 					"((`Sessioni`.`data`=? AND ?<=chiusura) OR `Sessioni`.`data`>? )");
@@ -518,9 +472,10 @@ SessioneVoto DataManager::getSessioneCorrenteSuccessiva(uint idProceduraCorrente
 
 		//si suppone che per una certa data, la procedura corrente sia unica
 		if(resultSet->next()){
+			sv = new SessioneVoto();
 			cout << "Sessione trovata!" << endl;
 			//estrazione dati procedura dalla tupla ottenuta
-			sv.setIdSessione(resultSet->getUInt("idSessione"));
+			sv->setIdSessione(resultSet->getUInt("idSessione"));
 
 			string data = resultSet->getString("data");
 			string apertura = resultSet->getString("apertura");
@@ -547,10 +502,10 @@ SessioneVoto DataManager::getSessioneCorrenteSuccessiva(uint idProceduraCorrente
 			strftime(buffer,20,"%d-%m-%Y",&dtData);
 			data = buffer;
 
-			sv.setOraApertura(oraApertura);
-			sv.setOraChiusura(oraChiusura);
-			sv.setData(data);
-			cout << "idSessione: " << sv.getIdSessione() << endl;
+			sv->setOraApertura(oraApertura);
+			sv->setOraChiusura(oraChiusura);
+			sv->setData(data);
+			cout << "idSessione: " << sv->getIdSessione() << endl;
 			cout << "data: " << data << endl;
 			cout << "ora apertura seggi: " << oraApertura << endl;
 			cout << "ora chiusura seggi: " << oraChiusura << endl;

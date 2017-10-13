@@ -27,9 +27,9 @@ public:
     string getMatricola() const;
     void setMatricola(const string &value);
 
-    void incVoti();
+    void incVoti(); //non utilizzata su seggio o sistemaRP
 	uint getNumVoti() const;
-
+	void setNumVoti(uint num); // non utilizzatata sul server Urna
 private:
     string lista;
     string nome;

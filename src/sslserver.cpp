@@ -196,6 +196,7 @@ void SSLServer::Servlet(int client_sock_fd/*, string ipClient*/) {/* threadable 
 			}
 			case servizi::nextSessione:{
 				this->serviceNextSessione(ssl);
+				break;
 			}
 			case servizi::attivazioneSeggio:{
 				string ipClient;
@@ -626,7 +627,7 @@ void SSLServer::serviceAttivazioneSeggio(SSL * ssl, string ipClient) {
 
 	//2. ricavare sessionKey per la postazione seggio con cui si sta comunicando
 	string encodedSessionKey = uv->clientSessionKey(ipClient);
-	//string encodedSessionKey = "11A47EC4465DD95FCD393075E7D3C4EB";
+
 	int success = 1; //1 rappresenta insuccesso dell'operazione
 	if (encodedSessionKey != ""){
 		cout << "Session key: " << encodedSessionKey << endl;
@@ -675,15 +676,17 @@ void SSLServer::serviceAttivazioneSeggio(SSL * ssl, string ipClient) {
 		//invio idSessioneCorrente o successiva
 		sendString_SSL(ssl,std::to_string(idSessioneCorrenteSuccessiva));
 
-		//se idSessioneCorrente o successiva != 0
+
 		//invia data Sessione
-		string dataSessione = uv->getSessioneCorrenteSuccessiva().getData();
+
+		SessioneVoto * sv = uv->getPointerSessioneCorrenteSuccessiva();
+		string dataSessione = sv->getData();
 		sendString_SSL(ssl,dataSessione);
 		//invio oraApertura
-		string oraApertura = uv->getSessioneCorrenteSuccessiva().getOraApertura();
+		string oraApertura = sv->getOraApertura();
 		sendString_SSL(ssl,oraApertura);
 		//invio oraChiusura
-		string oraChiusura = uv->getSessioneCorrenteSuccessiva().getOraChiusura();
+		string oraChiusura = sv->getOraChiusura();
 		sendString_SSL(ssl,oraChiusura);
 		//----infoSessione
 		cout << "inviate informazioni sessione" << endl;
@@ -714,10 +717,7 @@ void SSLServer::serviceAttivazioneSeggio(SSL * ssl, string ipClient) {
 
 		string encodedMAC = uv->calcolaMAC(encodedSessionKey,publicKeyRP);
 		sendString_SSL(ssl, encodedMAC);
-
-
 	}
-
 
 	return;
 
@@ -753,15 +753,23 @@ void SSLServer::serviceRisultatiVoto(SSL *ssl) {
 	uint esito = 1;
 	if(receiveString_SSL(ssl,strIdProcedura) != 0){
 		idProceduraVoto = atoi(strIdProcedura.c_str());
-		uv->risultatiScrutinioXML(idProceduraVoto,risultatiScrutinioXML, encodedSignRP);
-		esito  = 0;
+		if(uv->checkScrutinioEseguito(idProceduraVoto)){
+			uv->risultatiScrutinioXML(idProceduraVoto,risultatiScrutinioXML, encodedSignRP);
+			esito  = 0;
+		}
+		else {
+			//scrutinio non ancora effettuato da RP
+			cout << "Scrutinio non ancora eseguito" << endl;
+			esito = 2;
+		}
 	}
 	sendString_SSL(ssl,to_string(esito));
 
 	if(esito == 0){
-	//invio dei dati ottenuti
-	sendString_SSL(ssl,risultatiScrutinioXML);
-	sendString_SSL(ssl,risultatiScrutinioXML);
+		//invio dei dati ottenuti
+		cout << "Scrutinio eseguito, invio risultati e firma di RP" << endl;
+		sendString_SSL(ssl,risultatiScrutinioXML);
+		sendString_SSL(ssl,encodedSignRP);
 	}
 
 
@@ -936,6 +944,41 @@ void SSLServer::serviceCheckConnection(SSL* ssl, string ipClient) {
 }
 
 void SSLServer::serviceNextSessione(SSL* ssl) {
+	//seggioChiamante->mutex_stdout.lock();
+	cout << "ServizioUrnaThread: service started: " << servizi::nextSessione << endl;
+	//seggioChiamante->mutex_stdout.unlock();
+
+	//restituisce i dati dell'evenutale sessione successiva per una certa procedura
+	string procedura;
+	if(receiveString_SSL(ssl,procedura)!=0){
+		uint idProcedura = atoi(procedura.c_str());
+		SessioneVoto sv;
+		bool isThereOtherSession = uv->existSessioneSuccessiva(idProcedura, &sv);
+		if(isThereOtherSession){
+			//invia valore 1
+			sendString_SSL(ssl,to_string(1));
+
+			//invia dati sessione successiva a scopo informativo
+			//invia data Sessione
+			string dataSessione = sv.getData();
+			sendString_SSL(ssl,dataSessione);
+			//invio oraApertura
+			string oraApertura = sv.getOraApertura();
+			sendString_SSL(ssl,oraApertura);
+			//invio oraChiusura
+			string oraChiusura = sv.getOraChiusura();
+			sendString_SSL(ssl,oraChiusura);
+
+
+
+		}
+		else{
+			//invia valore 2
+			//non ci sono altre sessioni per questa procedura
+			sendString_SSL(ssl,to_string(2));
+		}
+	}
+	//oppure
 }
 
 void SSLServer::serviceResetMatricolaStatoVoto(SSL* ssl, string ipClient) {

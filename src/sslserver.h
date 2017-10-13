@@ -15,6 +15,7 @@
 #include <vector>
 #include <mutex>
 #include <thread>
+#include "sessionevoto.h"
 
 
 #include "urnavirtuale.h"
