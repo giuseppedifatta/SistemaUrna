@@ -755,6 +755,9 @@ void SSLServer::serviceRisultatiVoto(SSL *ssl) {
 		idProceduraVoto = atoi(strIdProcedura.c_str());
 		if(uv->checkScrutinioEseguito(idProceduraVoto)){
 			uv->risultatiScrutinioXML(idProceduraVoto,risultatiScrutinioXML, encodedSignRP);
+			cout << "Risultati Scrutinio: " << endl;
+			cout << risultatiScrutinioXML << endl;
+			cout << encodedSignRP << endl;
 			esito  = 0;
 		}
 		else {
