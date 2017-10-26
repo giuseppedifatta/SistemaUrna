@@ -11,20 +11,11 @@ class ProceduraVoto
 public:
     ProceduraVoto();
 
-    string getDescrizione() const;
-    void setDescrizione(const string &value);
-
     uint getNumSchedeVoto() const;
     void setNumSchedeVoto(const uint &value);
 
     uint getIdRP() const;
     void setIdRP(const uint &value);
-
-    string getData_ora_inizio() const;
-    void setData_ora_inizio(const string &value);
-
-    string getData_ora_termine() const;
-    void setData_ora_termine(const string &value);
 
     void addSessione(SessioneVoto *sessione);
     vector<SessioneVoto> getSessioni() const;
@@ -55,6 +46,15 @@ public:
     void setStato(const uint &stato);
     static string getStatoAsString(statiProcedura stato);
     static statiProcedura getStatoFromString(string stato);
+	const string& getDataOraInizio() const;
+	void setDataOraInizio(const string& dataOraInizio);
+	const string& getDataOraTermine() const;
+	void setDataOraTermine(const string& dataOraTermine);
+	uint getIdRp() const;
+	void setIdRp(uint idRp);
+	const string& getDescrizione() const;
+	void setDescrizione(const string& descrizione);
+
 private:
     string descrizione;
     uint numSchedeVoto;

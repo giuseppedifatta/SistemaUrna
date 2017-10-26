@@ -12,35 +12,26 @@ HardwareToken::HardwareToken()
 
 }
 
-string HardwareToken::getSN() const
-{
-    return SN;
+const string& HardwareToken::getPassword() const {
+	return password;
 }
 
-void HardwareToken::setSN(const string &value)
-{
-    SN = value;
+void HardwareToken::setPassword(const string& password) {
+	this->password = password;
 }
 
-string HardwareToken::getUsername() const
-{
-    return username;
+const string& HardwareToken::getSn() const {
+	return SN;
 }
 
-void HardwareToken::setUsername(const string &value)
-{
-    username = value;
+void HardwareToken::setSn(const string& sn) {
+	SN = sn;
 }
 
-string HardwareToken::getPassword() const
-{
-    return password;
+const string& HardwareToken::getUsername() const {
+	return username;
 }
 
-void HardwareToken::setPassword(const string &value)
-{
-    password = value;
+void HardwareToken::setUsername(const string& username) {
+	this->username = username;
 }
-
-
-

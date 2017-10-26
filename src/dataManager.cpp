@@ -107,8 +107,8 @@ ProceduraVoto DataManager::getProceduraCorrente() {
 
 				string fine = buffer;
 
-				pv.setData_ora_inizio(inizio);
-				pv.setData_ora_termine(fine);
+				pv.setDataOraInizio(inizio);
+				pv.setDataOraTermine(fine);
 			}
 			else{
 				//si tratta di una procedura che dovrebbe essere iniziata, ma tutte o alcune schede sono mancanti, non resta che eliminarla
@@ -208,8 +208,8 @@ vector<ProceduraVoto> DataManager::getProcedureRP(uint idRP) {
 			string dt_fine = dt_fromDB_toGMAhms(f);
 			cout << "termine procedura :" << dt_fine << endl;
 
-			pv.setData_ora_inizio(dt_inizio);
-			pv.setData_ora_termine(dt_fine);
+			pv.setDataOraInizio(dt_inizio);
+			pv.setDataOraTermine(dt_fine);
 
 
 			cout << "Stiamo aggiungendo la procedura " << id << " al vettore delle procedure di RP: " << idRP << endl;
@@ -1468,7 +1468,7 @@ vector<HardwareToken> DataManager::htSeggio(string ipSeggio) {
 		resultSet = pstmt->executeQuery();
 		while(resultSet->next()){
 			HardwareToken ht;
-			ht.setSN(resultSet->getString("snToken"));
+			ht.setSn(resultSet->getString("snToken"));
 			ht.setUsername(resultSet->getString("username"));
 			ht.setPassword(resultSet->getString("password"));
 			generatoriOTP.push_back(ht);

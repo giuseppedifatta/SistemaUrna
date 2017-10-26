@@ -15,6 +15,10 @@ class PacchettoVoto {
 public:
 	PacchettoVoto();
 	virtual ~PacchettoVoto();
+	const string& getEncodedSign() const;
+	void setEncodedSign(const string& encodedSign);
+	uint getIdProcedura() const;
+	void setIdProcedura(uint idProcedura);
 	const string& getIvc() const;
 	void setIvc(const string& ivc);
 	const string& getKc() const;
@@ -25,11 +29,6 @@ public:
 	void setNonce(uint nonce);
 	const string& getSchedaCifrata() const;
 	void setSchedaCifrata(const string& schedaCifrata);
-
-	uint getIdProcedura() const;
-	void setIdProcedura(uint idProcedura);
-	const string& getEncodedSign() const;
-	void setEncodedSign(const string& encodedSign);
 
 private:
 	string schedaCifrata;

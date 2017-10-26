@@ -660,11 +660,11 @@ void SSLServer::serviceAttivazioneSeggio(SSL * ssl, string ipClient) {
 		sendString_SSL(ssl,descrizione);
 
 		//invio dtInizio
-		string dtInizio = uv->getProceduraCorrente().getData_ora_inizio();
+		string dtInizio = uv->getProceduraCorrente().getDataOraInizio();
 		sendString_SSL(ssl,dtInizio);
 
 		//invio dtFine
-		string dtTermine = uv->getProceduraCorrente().getData_ora_termine();
+		string dtTermine = uv->getProceduraCorrente().getDataOraTermine();
 		sendString_SSL(ssl,dtTermine);
 		//invio stato
 		uint statoProcedura = uv->getProceduraCorrente().getStato();
@@ -695,7 +695,7 @@ void SSLServer::serviceAttivazioneSeggio(SSL * ssl, string ipClient) {
 		//invio delle informazioni dei 5 hardware token
 		vector <HardwareToken> generatori = uv->getHTSeggio(ipClient);
 		for (uint i = 0; i < generatori.size()/*5*/; i++){
-			string sn = generatori.at(i).getSN();
+			string sn = generatori.at(i).getSn();
 			string user = generatori.at(i).getUsername();
 			string pass = generatori.at(i).getPassword();
 			sendString_SSL(ssl,sn);

@@ -20,6 +20,22 @@ PacchettoVoto::~PacchettoVoto() {
 	// TODO Auto-generated destructor stub
 }
 
+const string& PacchettoVoto::getEncodedSign() const {
+	return encodedSign;
+}
+
+void PacchettoVoto::setEncodedSign(const string& encodedSign) {
+	this->encodedSign = encodedSign;
+}
+
+uint PacchettoVoto::getIdProcedura() const {
+	return idProcedura;
+}
+
+void PacchettoVoto::setIdProcedura(uint idProcedura) {
+	this->idProcedura = idProcedura;
+}
+
 const string& PacchettoVoto::getIvc() const {
 	return IVC;
 }
@@ -58,20 +74,4 @@ const string& PacchettoVoto::getSchedaCifrata() const {
 
 void PacchettoVoto::setSchedaCifrata(const string& schedaCifrata) {
 	this->schedaCifrata = schedaCifrata;
-}
-
-uint PacchettoVoto::getIdProcedura() const {
-	return idProcedura;
-}
-
-void PacchettoVoto::setIdProcedura(uint idProcedura) {
-	this->idProcedura = idProcedura;
-}
-
-const string& PacchettoVoto::getEncodedSign() const {
-	return encodedSign;
-}
-
-void PacchettoVoto::setEncodedSign(const string& encodedSign) {
-	this->encodedSign = encodedSign;
 }

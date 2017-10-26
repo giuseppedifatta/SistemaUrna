@@ -13,15 +13,12 @@ class HardwareToken
 {
 public:
     HardwareToken();
-
-    string getSN() const;
-    void setSN(const string &value);
-
-    string getUsername() const;
-    void setUsername(const string &value);
-
-    string getPassword() const;
-    void setPassword(const string &value);
+	const string& getPassword() const;
+	void setPassword(const string& password);
+	const string& getSn() const;
+	void setSn(const string& sn);
+	const string& getUsername() const;
+	void setUsername(const string& username);
 
 private:
     string SN;

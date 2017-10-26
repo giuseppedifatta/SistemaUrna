@@ -561,12 +561,12 @@ string UrnaVirtuale::procedureVotoRPtoXML(
 		pElement->SetText(descrizione.c_str());
 		pProcedura->InsertEndChild(pElement);
 
-		string dtInizio = pvs.at(i).getData_ora_inizio();
+		string dtInizio = pvs.at(i).getDataOraInizio();
 		pElement = xmlDoc.NewElement("inizio");
 		pElement->SetText(dtInizio.c_str());
 		pProcedura->InsertEndChild(pElement);
 
-		string dtTermine = pvs.at(i).getData_ora_termine();
+		string dtTermine = pvs.at(i).getDataOraTermine();
 		pElement = xmlDoc.NewElement("fine");
 		pElement->SetText(dtTermine.c_str());
 		pProcedura->InsertEndChild(pElement);

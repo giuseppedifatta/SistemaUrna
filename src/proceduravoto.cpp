@@ -14,16 +14,6 @@ ProceduraVoto::ProceduraVoto()
 	this->stato = ProceduraVoto::statiProcedura::undefined;
 }
 
-string ProceduraVoto::getDescrizione() const
-{
-	return descrizione;
-}
-
-void ProceduraVoto::setDescrizione(const string &value)
-{
-	descrizione = value;
-}
-
 uint ProceduraVoto::getNumSchedeVoto() const
 {
 	return numSchedeVoto;
@@ -44,25 +34,7 @@ void ProceduraVoto::setIdRP(const uint &value)
 	idRP = value;
 }
 
-string ProceduraVoto::getData_ora_inizio() const
-{
-	return data_ora_inizio;
-}
 
-void ProceduraVoto::setData_ora_inizio(const string &value)
-{
-	data_ora_inizio = value;
-}
-
-string ProceduraVoto::getData_ora_termine() const
-{
-	return data_ora_termine;
-}
-
-void ProceduraVoto::setData_ora_termine(const string &value)
-{
-	data_ora_termine = value;
-}
 
 void ProceduraVoto::addSessione(SessioneVoto *sessione)
 {
@@ -83,38 +55,6 @@ void ProceduraVoto::removeSessioneByIndex(int index)
 {
 	this->sessioni.erase(sessioni.begin()+index);
 }
-
-//string ProceduraVoto::getInfoRP(uint idRP)
-//{   string infoRP;
-//    if(rps.empty()){
-//        return "";
-//    }
-//    else{
-//        for(unsigned int i = 0; i< rps.size(); i++){
-//            string nome,cognome,data,luogo;
-//            if(rps.at(i).getIdRP() == idRP){
-//                nome = rps.at(i).getNome();
-//                cognome = rps.at(i).getCognome();
-//                data = rps.at(i).getDataNascita();
-//                luogo = rps.at(i).getLuogoNascita();
-//                infoRP =  nome + " " + cognome + ", " + luogo + ", " + data;
-//                break;
-//            }
-//        }
-//    }
-
-//    return infoRP;
-//}
-//
-//vector<ResponsabileProcedimento> ProceduraVoto::getRps() const
-//{
-//    return rps;
-//}
-//
-//void ProceduraVoto::setRps(const vector<ResponsabileProcedimento> &value)
-//{
-//    rps = value;
-//}
 
 uint ProceduraVoto::getIdProceduraVoto() const
 {
@@ -229,4 +169,36 @@ void ProceduraVoto::setStato(const uint &stato){
 
 	}
 
+}
+
+const string& ProceduraVoto::getDataOraInizio() const {
+	return data_ora_inizio;
+}
+
+void ProceduraVoto::setDataOraInizio(const string& dataOraInizio) {
+	data_ora_inizio = dataOraInizio;
+}
+
+const string& ProceduraVoto::getDataOraTermine() const {
+	return data_ora_termine;
+}
+
+void ProceduraVoto::setDataOraTermine(const string& dataOraTermine) {
+	data_ora_termine = dataOraTermine;
+}
+
+uint ProceduraVoto::getIdRp() const {
+	return idRP;
+}
+
+void ProceduraVoto::setIdRp(uint idRp) {
+	idRP = idRp;
+}
+
+const string& ProceduraVoto::getDescrizione() const {
+	return descrizione;
+}
+
+void ProceduraVoto::setDescrizione(const string& descrizione) {
+	this->descrizione = descrizione;
 }
