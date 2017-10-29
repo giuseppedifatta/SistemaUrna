@@ -1059,34 +1059,42 @@ void SSLServer::serviceAutenticazioneRP(SSL * ssl) {
 	string username;
 	receiveString_SSL(ssl,username);
 
-	string saltUser = uv->getSaltUser(username);
+	string saltUser = uv->getSaltUser(username); //salt nullo vuol dire utente non presente
 	sendString_SSL(ssl,saltUser);
 
-	//ricevi password rp
-	string hashedPassword;
-	receiveString_SSL(ssl,hashedPassword);
 
-	//controllo credenziali sul database
-	bool autenticato;
-	uint esito;
-	if(uv->authenticateRP(username,hashedPassword)){//verifica credenziali e invia esito autenticazione
-		if(uv->idRPByUsername(username) == 0){
-			//si è loggato il tecnico o il superuser, ma non sono responsabili di procedimento
-			cerr << "credenziali appartenenti a tecnico o superuser, rp non autenticato" << endl;
-			autenticato = false;
-			esito = uv->autenticato::not_authenticated;
+	bool autenticato = false;
+	uint esito = uv->autenticato::not_authenticated;
+
+
+
+	if(saltUser!="0"){ //se il salt recuperato non è nullo, viene eseguito il codice interno all'if
+		//ricevi password rp
+		string hashedPassword;
+		receiveString_SSL(ssl,hashedPassword);
+
+		//controllo corrispondenza hash della password per l'utente da autenticare
+
+		if(uv->authenticateRP(username,hashedPassword)){//verifica credenziali
+			if(uv->idRPByUsername(username) == 0){
+				//si è loggato il tecnico o il superuser, ma non sono responsabili di procedimento
+				cerr << "credenziali appartenenti a tecnico o superuser, rp non autenticato" << endl;
+				autenticato = false;
+				esito = uv->autenticato::not_authenticated;
+			}
+			else{
+				autenticato = true;
+				esito = uv->autenticato::authenticated;
+			}
 		}
 		else{
-			autenticato = true;
-			esito = uv->autenticato::authenticated;
+			autenticato = false;
+			esito = uv->autenticato::not_authenticated;
+
 		}
 	}
-	else{
-		autenticato = false;
-		esito = uv->autenticato::not_authenticated;
 
-	}
-
+	cout << "invio esito autenticazione: " << esito << endl;
 	//invio esito autenticazione
 	sendString_SSL(ssl,to_string(esito));
 

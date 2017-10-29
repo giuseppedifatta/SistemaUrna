@@ -1385,7 +1385,7 @@ string DataManager::rpSalt(string usernameRP) {
 
 
 string DataManager::userSalt(string userid) {
-	string storedSalt;
+	string storedSalt ="0";
 	Connection * connection;
 
 	this->connectToMyDB(connection);
