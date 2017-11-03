@@ -1261,7 +1261,7 @@ void DataManager::connectToMyDB(Connection *&connection) {
 	string nameMydb = getConfig("nameDBmydb");
 	connection = driver->connect(ip_port,userMydb, passMydb);
 	connection->setAutoCommit(false);
-	connection->setSchema("nameMydb");
+	connection->setSchema(nameMydb);
 
 	cout << "connessione a mydb" << endl;
 }
