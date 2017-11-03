@@ -1,0 +1,25 @@
+#inserire in righe differenti i percorsi dei file per la connessione SSL/TLS, in formato pem: certificato (certFile) , chiave privata associata(keyFile) e catena di certificazione(chainFile), separare il percorso con uno spazio
+
+certFilePem /home/giuseppe/myCA/intermediate/certs/localhost.cert.pem
+certFileDer /home/giuseppe/myCA/intermediate/certs/localhost.cert.der
+keyFilePem /home/giuseppe/myCA/intermediate/private/localhost.key.pem
+chainFilePem /home/giuseppe/myCA/intermediate/certs/ca-chain.cert.pem
+
+#posizioni e credenziali dei database
+
+nameDBurna urnaDB
+pathDBurna localhost:3306
+userDBurna root
+passDBurna root
+
+nameDBanagrafica anagraficaDB
+pathDBanagrafica localhost:3306
+userDBanagrafica root
+passDBanagrafica root
+
+nameDBmydb mydb
+pathDBmydb localhost:3306
+userDBmydb root
+passDBmydb root
+
+

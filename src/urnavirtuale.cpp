@@ -7,6 +7,7 @@
 
 #include "urnavirtuale.h"
 #include "RSA-PSS_utils.h"
+#include "conf.h"
 
 UrnaVirtuale::UrnaVirtuale() {
 
@@ -59,8 +60,9 @@ bool UrnaVirtuale::checkMACasUniqueID(string macPacchettoVoto) {
 }
 
 string UrnaVirtuale::signString_U(string data) {
+	string pathPrivateKeyPem = getConfig("keyFilePem");
+	const char * filePrivateKey = pathPrivateKeyPem.c_str();
 
-	const char * filePrivateKey = "/home/giuseppe/myCA/intermediate/private/localhost.key.pem";
 	RSA::PrivateKey privateKey = this->extractPrivatePemKey(filePrivateKey);
 	ByteQueue queue;
 	privateKey.Save(queue);
@@ -97,42 +99,41 @@ string UrnaVirtuale::signString_U(string data) {
 		);//StringSource
 		//cout << "Signature encoded: " << encodedSignature << endl;
 
-		//------ verifica signature
-		FileSource certin(
-				"/home/giuseppe/myCA/intermediate/certs/localhost.cert.der", true,
-				NULL, true);
-		FileSink keyout("localhost-public.key", true);
-
-		getPublicKeyFromCert(certin, keyout);
-
-		//non dimenticare di chiudere il buffer!!!!!!!
-		keyout.MessageEnd();
-
-		RSA::PublicKey publicKey;
-		LoadPublicKey("localhost-public.key", publicKey);
-
-
-		ByteQueue queue;
-		publicKey.Save(queue);
-		HexEncoder encoder;
-		queue.CopyTo(encoder);
-		encoder.MessageEnd();
-
-		string s;
-		StringSink ss(s);
-		encoder.CopyTo(ss);
-		ss.MessageEnd();
-		cout << "PublicKey Urna: " << s << endl;
-		////////////////////////////////////////////////
-		// Verify and Recover
-		RSASS<PSS, SHA256>::Verifier verifier(publicKey);
-		//cout << data + signature << endl;
-		StringSource(data + signature, true,
-				new SignatureVerificationFilter(verifier, NULL,
-						SignatureVerificationFilter::THROW_EXCEPTION) // SignatureVerificationFilter
-		);// StringSource
-
-		cout << "Verified signature on message" << endl;
+//		//------ verifica signature
+//		const char * fileCertDer = getConfig("certFileDer").c_str();
+//		FileSource certin(fileCertDer, true, NULL, true);
+//		FileSink keyout("localhost-public.key", true);
+//
+//		getPublicKeyFromCert(certin, keyout);
+//
+//		//non dimenticare di chiudere il buffer!!!!!!!
+//		keyout.MessageEnd();
+//
+//		RSA::PublicKey publicKey;
+//		LoadPublicKey("localhost-public.key", publicKey);
+//
+//
+//		ByteQueue queue;
+//		publicKey.Save(queue);
+//		HexEncoder encoder;
+//		queue.CopyTo(encoder);
+//		encoder.MessageEnd();
+//
+//		string s;
+//		StringSink ss(s);
+//		encoder.CopyTo(ss);
+//		ss.MessageEnd();
+//		cout << "PublicKey Urna: " << s << endl;
+//		////////////////////////////////////////////////
+//		// Verify and Recover
+//		RSASS<PSS, SHA256>::Verifier verifier(publicKey);
+//		//cout << data + signature << endl;
+//		StringSource(data + signature, true,
+//				new SignatureVerificationFilter(verifier, NULL,
+//						SignatureVerificationFilter::THROW_EXCEPTION) // SignatureVerificationFilter
+//		);// StringSource
+//
+//		cout << "Verified signature on message" << endl;
 
 	} // try
 
@@ -182,43 +183,6 @@ string UrnaVirtuale::signString_RP(string data,CryptoPP::RSA::PrivateKey private
 		);//StringSource
 		//cout << "Signature encoded: " << encodedSignature << endl;
 
-		//		//------ verifica signature
-		//		FileSource certin(
-		//				"/home/giuseppe/myCA/intermediate/certs/localhost.cert.der", true,
-		//				NULL, true);
-		//		FileSink keyout("localhost-public.key", true);
-		//
-		//		getPublicKeyFromCert(certin, keyout);
-		//
-		//		//non dimenticare di chiudere il buffer!!!!!!!
-		//		keyout.MessageEnd();
-		//
-		//		RSA::PublicKey publicKey;
-		//		LoadPublicKey("localhost-public.key", publicKey);
-		//
-		//
-		//		ByteQueue queue;
-		//		publicKey.Save(queue);
-		//		HexEncoder encoder;
-		//		queue.CopyTo(encoder);
-		//		encoder.MessageEnd();
-		//
-		//		string s;
-		//		StringSink ss(s);
-		//		encoder.CopyTo(ss);
-		//		ss.MessageEnd();
-		//		cout << "PublicKey Urna: " << s << endl;
-		//		////////////////////////////////////////////////
-		//		// Verify and Recover
-		//		RSASS<PSS, SHA256>::Verifier verifier(publicKey);
-		//		//cout << data + signature << endl;
-		//		StringSource(data + signature, true,
-		//				new SignatureVerificationFilter(verifier, NULL,
-		//						SignatureVerificationFilter::THROW_EXCEPTION) // SignatureVerificationFilter
-		//		);// StringSource
-		//
-		//		cout << "Verified signature on message" << endl;
-
 	} // try
 
 	catch (CryptoPP::Exception& e) {
@@ -241,9 +205,8 @@ int UrnaVirtuale::verifySignString_U(string data, string encodedSignature) {
 
 	try{
 		////------ verifica signature
-		FileSource certin(
-				"/home/giuseppe/myCA/intermediate/certs/localhost.cert.der", true,
-				NULL, true);
+		const char * fileCertDer = getConfig("certFileDer").c_str();
+		FileSource certin(fileCertDer, true, NULL, true);
 		FileSink keyout("localhost-public.key", true);
 
 		getPublicKeyFromCert(certin, keyout);

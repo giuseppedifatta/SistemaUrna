@@ -6,6 +6,7 @@
  */
 
 #include "dataManager.h"
+#include "conf.h"
 
 
 DataManager::DataManager() {
@@ -13,9 +14,6 @@ DataManager::DataManager() {
 	connectionAnagrafica = nullptr;
 	try{
 		driver=get_driver_instance();
-		//connection=driver->connect("localhost:3306","root", "root");
-		//connection->setAutoCommit(false);
-		//connection->setSchema("mydb");
 	}catch(SQLException &ex){
 		cout<<"Exception occurred: "<<ex.getErrorCode()<<endl;
 	}
@@ -1256,26 +1254,38 @@ string DataManager::currentTimeDbFormatted() {
 
 void DataManager::connectToMyDB(Connection *&connection) {
 
-	driver = get_driver_instance();
-	connection = driver->connect("localhost:3306","root", "root");
+	//driver = get_driver_instance();
+	string ip_port = getConfig("pathDBmydb");
+	string userMydb = getConfig("userDBmydb");
+	string passMydb = getConfig("passDBmydb");
+	string nameMydb = getConfig("nameDBmydb");
+	connection = driver->connect(ip_port,userMydb, passMydb);
 	connection->setAutoCommit(false);
-	connection->setSchema("mydb");
+	connection->setSchema("nameMydb");
 
 	cout << "connessione a mydb" << endl;
 }
 
 void DataManager::connectToAnagraficaDB(Connection *& connection) {
-	connection=driver->connect("localhost:3306","root", "root");
+	string ip_port = getConfig("pathDBanagrafica");
+	string userAnagrafica = getConfig("userDBanagrafica");
+	string passAnagrafica = getConfig("passDBanagrafica");
+	string nameAnagrafica = getConfig("nameDBanagrafica");
+	connection=driver->connect(ip_port,userAnagrafica, passAnagrafica);
 	connection->setAutoCommit(false);
-	connection->setSchema("anagraficaDB");
+	connection->setSchema(nameAnagrafica);
 	cout << "connessione a anagraficaDB" << endl;
 
 }
 
 void DataManager::connectToUrnaDB() {
-	connectionUrna=driver->connect("localhost:3306","root", "root");
+	string ip_port = getConfig("pathDBurna");
+	string userUrna = getConfig("userDBurna");
+	string passUrna = getConfig("passDBurna");
+	string nameUrna = getConfig("nameDBurna");
+	connectionUrna=driver->connect(ip_port,userUrna, passUrna);
 	connectionUrna->setAutoCommit(false);
-	connectionUrna->setSchema("urnaDB");
+	connectionUrna->setSchema(nameUrna);
 	cout << "connessione a urnaDB" << endl;
 
 }
@@ -1283,9 +1293,13 @@ void DataManager::connectToUrnaDB() {
 
 
 void DataManager::connectToAnagraficaDB() {
-	connectionAnagrafica=driver->connect("localhost:3306","root", "root");
+	string ip_port = getConfig("pathDBanagrafica");
+	string userAnagrafica = getConfig("userDBanagrafica");
+	string passAnagrafica = getConfig("passDBanagrafica");
+	string nameAnagrafica = getConfig("nameDBanagrafica");
+	connectionAnagrafica=driver->connect(ip_port,userAnagrafica, passAnagrafica);
 	connectionAnagrafica->setAutoCommit(false);
-	connectionAnagrafica->setSchema("anagraficaDB");
+	connectionAnagrafica->setSchema(nameAnagrafica);
 	cout << "connessione a anagraficaDB" << endl;
 
 }

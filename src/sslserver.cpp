@@ -33,9 +33,9 @@
 using namespace CryptoPP;
 
 
-# define LOCALHOST "localhost"
+#define LOCALHOST "localhost" //non utilizzato
 
-#define PORT "4433"
+#define PORT "4433" //non modificare, se si vuole eseguire il servizio su un'altra porta, è necessario modificare la porta su tutte le altre componenti della piattaforma
 
 using namespace std;
 
@@ -50,12 +50,14 @@ SSLServer::SSLServer(UrnaVirtuale * uv) {
 
 	this->createServerContext();
 
-	char certFile[] =
-			"/home/giuseppe/myCA/intermediate/certs/localhost.cert.pem";
-	char keyFile[] =
-			"/home/giuseppe/myCA/intermediate/private/localhost.key.pem";
-	char chainFile[] =
-			"/home/giuseppe/myCA/intermediate/certs/ca-chain.cert.pem";
+	string pathCertFilePem = getConfig("certFilePem");
+	const char * certFile = pathCertFilePem.c_str();
+
+	string pathKeyFilePem = getConfig("keyFilePem");
+	const char * keyFile = pathKeyFilePem.c_str();
+
+	string pathChainFilePem = getConfig("chainFilePem");
+	const char * chainFile = pathChainFilePem.c_str();
 
 	configure_context(certFile, keyFile, chainFile);
 
@@ -1182,11 +1184,10 @@ void SSLServer::createServerContext() {
 
 }
 
-void SSLServer::configure_context(char* CertFile, char* KeyFile, char* ChainFile) {
+void SSLServer::configure_context(const char* CertFile, const char* KeyFile, const char* ChainFile) {
 	SSL_CTX_set_ecdh_auto(this->ctx, 1);
 
 	SSL_CTX_load_verify_locations(this->ctx, ChainFile, ChainFile);
-	//SSL_CTX_use_certificate_chain_file(ctx,"/home/giuseppe/myCA/intermediate/certs/ca-chain.cert.pem");
 
 	/*The final step of configuring the context is to specify the certificate and private key to use.*/
 	/* Set the key and cert */
@@ -1497,8 +1498,8 @@ void SSLServer::verify_ClientCert(SSL *ssl) {
 	 if (!(cert = PEM_read_bio_X509(certbio, NULL, 0, NULL)))
 	 BIO_printf(this->outbio, "ServizioUrnaThread: Error loading cert into memory\n");
 	 */
-	char chainFile[] =
-			"/home/giuseppe/myCA/intermediate/certs/ca-chain.cert.pem";
+	string pathChainFile = getConfig("chainFilePem");
+	const char  * chainFile = pathChainFile.c_str();
 
 	ret = X509_STORE_load_locations(store, chainFile, NULL);
 	if (ret != 1) {
