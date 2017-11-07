@@ -60,7 +60,7 @@ public:
 	bool checkMACasUniqueID(string macPacchettoVoto);
 	//bool storePacchettoVoto(string idSchedaCompilata, string schedaCifrata, string kc, string ivc, uint nonce);
 	uint getIdSessioneCorrenteSuccessiva();
-	bool existSessioneSuccessiva(uint idProcedura, SessioneVoto *sv);
+	bool existSessioneSuccessiva(uint idProcedura, SessioneVoto &sv);
 	bool getInfoMatricola(uint matricola, string &nome, string &cognome, uint &statoVoto);
 	//bool updateVoted(uint matricola);
 	bool resetMatricola(uint matricola);
@@ -127,8 +127,6 @@ private:
 	int verifySignString_U(string data, string encodedSignature);
 	string signString_RP(string data,CryptoPP::RSA::PrivateKey privateKey);
 	int verifySignString_RP(string data, string encodedSignature,string encodedPublicKey);
-	string generaDigestSHA256(string data); //non usato
-	bool checkDigestSHA256(string digest, string dataToCheck); //non usato
 	bool parseDecryptSchedaCifrata(string schedaCifrata,SecByteBlock k ,SecByteBlock iv, uint nonce,SchedaCompilata* sc,uint &compilata_bianca);
 	SecByteBlock RSADecrypt(string cipher, CryptoPP::RSA::PrivateKey privateKey);
 	string AESdecryptStdString(string cipher, SecByteBlock key, SecByteBlock iv);

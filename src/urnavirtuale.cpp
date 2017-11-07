@@ -205,7 +205,8 @@ int UrnaVirtuale::verifySignString_U(string data, string encodedSignature) {
 
 	try{
 		////------ verifica signature
-		const char * fileCertDer = getConfig("certFileDer").c_str();
+		string pathCertFileDer = getConfig("certFileDer");
+		const char * fileCertDer = pathCertFileDer.c_str();
 		FileSource certin(fileCertDer, true, NULL, true);
 		FileSink keyout("localhost-public.key", true);
 
@@ -247,42 +248,6 @@ int UrnaVirtuale::verifySignString_U(string data, string encodedSignature) {
 		success = 1;
 	}
 	return success;
-}
-
-
-string UrnaVirtuale::generaDigestSHA256(string data) {
-	byte const* pbData = (byte*) data.data();
-	unsigned int nDataLen = data.size();
-
-	byte abDigest[CryptoPP::SHA256::DIGESTSIZE];
-
-	CryptoPP::SHA256().CalculateDigest(abDigest, pbData, nDataLen);
-
-	CryptoPP::HexEncoder encoder;
-	std::string output;
-	encoder.Attach(new CryptoPP::StringSink(output));
-	encoder.Put(abDigest, sizeof(abDigest));
-	encoder.MessageEnd();
-
-	return output;
-}
-
-bool UrnaVirtuale::checkDigestSHA256(string digest, string dataToCheck) {
-	byte const* pbData = (byte*) dataToCheck.data();
-	unsigned int nDataLen = dataToCheck.size();
-
-	byte abDigest[CryptoPP::SHA256::DIGESTSIZE];
-
-	CryptoPP::SHA256().CalculateDigest(abDigest, pbData, nDataLen);
-
-	CryptoPP::HexEncoder encoder;
-	std::string newDigest;
-	encoder.Attach(new CryptoPP::StringSink(newDigest));
-	encoder.Put(abDigest, sizeof(abDigest));
-	encoder.MessageEnd();
-
-	return (newDigest == digest);
-
 }
 
 
@@ -367,8 +332,8 @@ CryptoPP::RSA::PrivateKey UrnaVirtuale::extractPrivatePemKey(const char * key_pe
 string UrnaVirtuale::calcolaMAC(string encodedSessionKey, string plain){
 
 
-	//"11A47EC4465DD95FCD393075E7D3C4EB";
-	cout << "Session key: " << encodedSessionKey << endl;
+
+	//cout << "Session key: " << encodedSessionKey << endl;
 	string decodedKey;
 	StringSource (encodedSessionKey,true,
 			new HexDecoder(
@@ -385,15 +350,15 @@ string UrnaVirtuale::calcolaMAC(string encodedSessionKey, string plain){
     \*********************************/
 
 	// Pretty print key
-	encoded.clear();
-	StringSource(key, key.size(), true,
-			new HexEncoder(
-					new StringSink(encoded)
-			) // HexEncoder
-	); // StringSource
-	cout << "key encoded: " << encoded << endl;
+//	encoded.clear();
+//	StringSource(key, key.size(), true,
+//			new HexEncoder(
+//					new StringSink(encoded)
+//			) // HexEncoder
+//	); // StringSource
+//	cout << "key encoded: " << encoded << endl;
 
-	cout << "plain text: " << plain << endl;
+	//cout << "plain text: " << plain << endl;
 
 	/*********************************\
     \*********************************/
@@ -1382,12 +1347,17 @@ void UrnaVirtuale::risultatiScrutinioXML(uint idProcedura, string &risultatiScru
 	 model->getRisultatiScrutinio(idProcedura, risultatiScrutinioXML, encodedSignRP);
 }
 
-bool UrnaVirtuale::existSessioneSuccessiva(uint idProcedura, SessioneVoto* sv) {
-	sv = model->getSessioneCorrenteSuccessiva(idProcedura);
+bool UrnaVirtuale::existSessioneSuccessiva(uint idProcedura, SessioneVoto &sv) {
+	SessioneVoto * sessione = model->getSessioneCorrenteSuccessiva(idProcedura);
 
-	if(sv==nullptr){
+	if(sessione==nullptr){
 		return false;
 	}
+
+	sv.setData(sessione->getData());
+	sv.setIdSessione(sessione->getIdSessione());
+	sv.setOraApertura(sessione->getOraApertura());
+	sv.setOraChiusura(sessione->getOraChiusura());
 	return true;
 }
 

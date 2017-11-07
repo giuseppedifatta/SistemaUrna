@@ -867,6 +867,7 @@ uint DataManager::getNumberSchedeCompilate(uint idProcedura) {
 		resultSet = pstmt->executeQuery();
 		if(resultSet->next()){
 			numSchede = resultSet->getUInt("totaleSchede");
+			cout << "Numero schede compilate presenti per la procedura " << idProcedura << ": " << numSchede << endl;
 
 		}
 
@@ -877,7 +878,7 @@ uint DataManager::getNumberSchedeCompilate(uint idProcedura) {
 	delete pstmt;
 	delete resultSet;
 	connectionCloseUrna();
-	return numSchede; //HexEncoded
+	return numSchede;
 }
 
 vector<PacchettoVoto> DataManager::getPacchettiVoto(uint idProcedura) {

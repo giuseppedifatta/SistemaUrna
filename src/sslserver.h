@@ -97,7 +97,7 @@ private:
 	void serviceAutenticazioneRP(SSL *ssl);
 	void serviceTryVoteElettore(SSL * ssl, string ipClient);
 	void serviceInfoMatricola(SSL * ssl, string ipClient);
-	//void serviceSetMatricolaVoted(SSL *ssl, string ipClient);
+
 	void serviceCheckConnection(SSL *ssl, string ipClient);
 	void serviceResetMatricolaStatoVoto(SSL * ssl, string ipClient);
 };

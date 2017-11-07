@@ -28,7 +28,7 @@ string getConfig(string value) {
 				if(startPos != std::string::npos){
 					startPos = startPos + value.length() + 1;
 					founded = line.substr(startPos);
-					cout << founded << endl;
+					//cout << founded << endl;
 					break;
 				}
 			}
@@ -36,7 +36,7 @@ string getConfig(string value) {
 		myfile.close();
 	}
 
-	else cout << "Unable to open file";
+	else cerr << "Unable to open file";
 
 	return founded;
 }

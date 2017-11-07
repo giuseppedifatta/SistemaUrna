@@ -800,8 +800,7 @@ void SSLServer::serviceScrutinio(SSL * ssl) {
 
 	uv->initConnessioneUrnaDB();
 
-	uint numSchedeDaScrutinare = 0; //
-	uv->numSchedeCompilate(idProcedura);
+	uint numSchedeDaScrutinare = uv->numSchedeCompilate(idProcedura);
 	//invia numeroSchede da scrutinare
 	sendString_SSL(ssl,to_string(numSchedeDaScrutinare));
 
@@ -958,7 +957,7 @@ void SSLServer::serviceNextSessione(SSL* ssl) {
 	if(receiveString_SSL(ssl,procedura)!=0){
 		uint idProcedura = atoi(procedura.c_str());
 		SessioneVoto sv;
-		bool isThereOtherSession = uv->existSessioneSuccessiva(idProcedura, &sv);
+		bool isThereOtherSession = uv->existSessioneSuccessiva(idProcedura, sv);
 		if(isThereOtherSession){
 			//invia valore 1
 			sendString_SSL(ssl,to_string(1));
